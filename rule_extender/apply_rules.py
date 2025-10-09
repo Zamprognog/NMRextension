@@ -79,8 +79,6 @@ def generate_triple_predictions2(kg: nx.MultiDiGraph, triple:pd.tseries, target_
             break
         all_valid_groundings = set() #this is the results of all possible grounding of the target variable
         open_variables = list(set([t[1] for t in cand] + [t[2] for t in cand])) #variables to be assigned
-        head_pattern = cand[0]
-        body_pattern = cand[1:]
 
         if mask_object:
             base_var = cand[0][1]
@@ -88,10 +86,10 @@ def generate_triple_predictions2(kg: nx.MultiDiGraph, triple:pd.tseries, target_
         else:
             base_var = cand[0][2]
             target_var = cand[0][1]
-        starting_i = next((i for i, sublist in enumerate(cand[1:]) if base_var in sublist), None)
-        shifted_cand  = cand[starting_i:] + cand[1:starting_i]
+        # starting_i = next((i for i, sublist in enumerate(cand[1:]) if base_var in sublist), None) +1
+        # shifted_cand  = cand[starting_i:] + cand[1:starting_i]
         counts = lookforgrounding(kg=kg,
-                              remaining_rule=shifted_cand,
+                              remaining_rule=cand[1:],
                               target_pattern={'base_var': base_var, 'target_var': target_var,
                                               'property': triple.iloc[1], 'isObject': mask_object},
                               open_vars=[v for v in open_variables if v != base_var],
@@ -108,7 +106,6 @@ def generate_triple_predictions2(kg: nx.MultiDiGraph, triple:pd.tseries, target_
         # build the ranking
         sorted_predictions = [pred for key in sorted(predictions.keys(), reverse=True) for pred in predictions[key]]
         # aggregate according to 'max rank' criterion: only consider the highest conf rule for each predicted target
-        # return list(dict.fromkeys(sorted_predictions))
         if predictions is None:
             print('None here')
     return predictions
@@ -117,7 +114,7 @@ def generate_triple_predictions2(kg: nx.MultiDiGraph, triple:pd.tseries, target_
 def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 100,debug=False):
 
     test_triples = pd.read_csv(test_file, sep= '\t', header = None, names = ['s','p','o'])
-    if debug: test_triples = test_triples[:50]
+    if debug: test_triples = test_triples[:1000]
     with open(out_file, 'w') as of: #following the approach from anyburl
         for i, trip in test_triples.iterrows():
             p = trip.iloc[1]
@@ -127,12 +124,7 @@ def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rul
                 print(i)
 
             candidate_rules = pred_rules_index[p] if p in pred_rules_index.keys() else []
-            # if functional and any(data == p for u,v,data in train_kg.out_edges(s,keys=True)):
-            # if functional:  # this checks if a (s,p,?) exists, which would except the functional rule
-            #     outgoing = [data for u, v, data in train_kg.out_edges(s, keys=True)]
-            #     if p in outgoing:
-            #         #todo: log occurrence
-            #         pass
+
             sorted_o_predictions = generate_triple_predictions2(kg=train_kg, triple=trip, target_loc=2,
                                                                       candidate_rules=candidate_rules, limit=limit,
                                                                       mask_object=True,onto_processor=onto_processor)

@@ -31,9 +31,9 @@ with open(train, 'r') as rf:
         s, p, o = line.strip('\n').split('\t')
         graph_train.add_edge(s, o, key=p)
 
-#todo: problem: classification/taxonomy is incorrect, need to improve the logic (person vs personus)
+
 start = time.time()
 generate_predictions(train_kg=graph_train, test_file=test, out_file=str(temp_dir / 'amie_test_predictions.txt'),
-                     onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=True)
+                     onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
 print(time.time() - start)
 print(onto_p.get_stats())

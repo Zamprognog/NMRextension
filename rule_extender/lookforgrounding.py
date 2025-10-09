@@ -16,6 +16,8 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
 
     :return:
     '''
+
+    #base case: all variables found a grounding, we check if it is valid
     if len(open_vars) ==0: # all variables are grounded
         to_add = grounded_vars[target_pattern['target_var']]
         if onto_processor.checkSem:
@@ -47,55 +49,66 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
             results_list.add(to_add)
         return True
 
+    #iteration case: due to AMIE having different types of rules, we rotate the rule until we get one atom that is already instantiated
+    if remaining_rule[0][1] not in grounded_vars.keys() and remaining_rule[0][2] not in grounded_vars.keys():
+        starting_i = next((i for i, sublist in enumerate(remaining_rule) if not grounded_vars.keys().isdisjoint(sublist[1:])),None)
+        shifted_cand  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
+    else:
+        shifted_cand = remaining_rule
+    target_prop = shifted_cand[0][0] #the type of edge
 
-    # i need to make sure there is always at least one grounded variable in the pattern
-    target_prop = remaining_rule[0][0] #the type of edge
-
-    if remaining_rule[0][2] not in grounded_vars.keys(): #the subject was previously grounded, the object is not
+    # Option1: the subject was previously grounded, the object is not
+    if shifted_cand[0][2] not in grounded_vars.keys():
         try:
-            out_edges = kg.out_edges(grounded_vars[remaining_rule[0][1]], keys=True)
-        except Exception:
-            print(remaining_rule[0][1])
+            out_edges = kg.out_edges(grounded_vars[shifted_cand[0][1]], keys=True)
+        except KeyError as e:
+            print(e)
+        except IndexError as e:
+            print(e)
+
         if len(out_edges) == 0:
             return True
+
         target_out_edges = [edge for edge in out_edges if edge[2] == target_prop]
-
-        current_variable = remaining_rule[0][2]  # trying to ground the object
-
+        current_variable = shifted_cand[0][2]  # trying to ground the object
         for oe in target_out_edges:
             if len(results_list) > limit:
                 return True
             if oe[1] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
                 if not lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=remaining_rule[1:],
+                                   remaining_rule=shifted_cand[1:],
                                    open_vars=[v for v in open_vars if v != current_variable],
                                    grounded_vars={**grounded_vars, current_variable: oe[1]},
                                    results_list=results_list, onto_processor=onto_processor,
                                    limit=limit):
                     return False
-    elif remaining_rule[0][1] not in grounded_vars.keys(): #the object was previously grounded, the subject is not
-        in_edges = kg.in_edges(grounded_vars[remaining_rule[0][2]], keys=True)
+
+    #Option 2: the object was previously grounded, the subject is not
+    elif shifted_cand[0][1] not in grounded_vars.keys():
+        in_edges = kg.in_edges(grounded_vars[shifted_cand[0][2]], keys=True)
         if len(in_edges) == 0:
             return True
         target_in_edges = [edge for edge in in_edges if edge[2] == target_prop]
 
-        current_variable = remaining_rule[0][1]  # trying to ground the subject
+        current_variable = shifted_cand[0][1]
         for ie in target_in_edges:
             if len(results_list) > limit:
                 return True
             if ie[0] not in grounded_vars.values():
                 if not lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=remaining_rule[1:],
+                                   remaining_rule=shifted_cand[1:],
                                    open_vars=[v for v in open_vars if v != current_variable],
                                    grounded_vars={**grounded_vars, current_variable: ie[0]},
                                    results_list=results_list, onto_processor=onto_processor, limit=limit):
                     return False
-    else : #both are grounded, check if this link also exists
-        if not kg.has_edge(grounded_vars[remaining_rule[0][1]], grounded_vars[remaining_rule[0][2]], key=target_prop):
+
+    #Option 3: both are grounded, check if this link also exists
+    else :
+        if not kg.has_edge(grounded_vars[shifted_cand[0][1]], grounded_vars[shifted_cand[0][2]], key=target_prop):
             return False
         else:
             return lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=remaining_rule[1:],
+                                   remaining_rule=shifted_cand[1:],
                                    open_vars=open_vars,
                                    grounded_vars=grounded_vars,
                                    results_list=results_list, onto_processor=onto_processor, limit=limit)
