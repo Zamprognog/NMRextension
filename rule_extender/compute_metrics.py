@@ -30,7 +30,7 @@ with open(train, 'r') as rf:
     for line in rf.readlines():
         s, p, o = line.strip('\n').split('\t')
         kg.add_edge(s, o, key=p)
-for pfilename in ['../temp/test_predictions.txt', '../rule_mining/NELL995/NELL995_predictions']:
+for pfilename in ['../temp/anyburl_test_predictions.txt', '../rule_mining/NELL995/NELL995_predictions']:
     print(pfilename)
     ks = [1,5,10]
     hits= [0.0,0.0,0.0]
