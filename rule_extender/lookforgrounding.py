@@ -52,66 +52,57 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
     #iteration case: due to AMIE having different types of rules, we rotate the rule until we get one atom that is already instantiated
     if remaining_rule[0][1] not in grounded_vars.keys() and remaining_rule[0][2] not in grounded_vars.keys():
         starting_i = next((i for i, sublist in enumerate(remaining_rule) if not grounded_vars.keys().isdisjoint(sublist[1:])),None)
-        shifted_cand  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
+        rotated_remaining_rule  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
     else:
-        shifted_cand = remaining_rule
-    target_prop = shifted_cand[0][0] #the type of edge
+        rotated_remaining_rule = remaining_rule
 
-    # Option1: the subject was previously grounded, the object is not
-    if shifted_cand[0][2] not in grounded_vars.keys():
+    current_atom = rotated_remaining_rule[0]
+    target_prop = current_atom[0] #the type of edge
+
+    if current_atom[2] not in grounded_vars.keys():
+        # Option1: the subject was previously grounded, the object is not
+        known_var_pos = 1 #in the RULE syntax
+        current_target_var_pos = 2 #in the RULE syntax
+        current_target_var_pos_in_nx = 1 # in the NX syntax
         try:
-            out_edges = kg.out_edges(grounded_vars[shifted_cand[0][1]], keys=True)
-        except KeyError as e:
-            print(e)
-        except IndexError as e:
-            print(e)
+            edges = kg.out_edges(grounded_vars[current_atom[known_var_pos]], keys=True)
+        except IndexError:
+            print()
 
-        if len(out_edges) == 0:
-            return True
 
-        target_out_edges = [edge for edge in out_edges if edge[2] == target_prop]
-        current_variable = shifted_cand[0][2]  # trying to ground the object
-        for oe in target_out_edges:
-            if len(results_list) > limit:
-                return True
-            if oe[1] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
-                if not lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=shifted_cand[1:],
-                                   open_vars=[v for v in open_vars if v != current_variable],
-                                   grounded_vars={**grounded_vars, current_variable: oe[1]},
-                                   results_list=results_list, onto_processor=onto_processor,
-                                   limit=limit):
-                    return False
-
-    #Option 2: the object was previously grounded, the subject is not
-    elif shifted_cand[0][1] not in grounded_vars.keys():
-        in_edges = kg.in_edges(grounded_vars[shifted_cand[0][2]], keys=True)
-        if len(in_edges) == 0:
-            return True
-        target_in_edges = [edge for edge in in_edges if edge[2] == target_prop]
-
-        current_variable = shifted_cand[0][1]
-        for ie in target_in_edges:
-            if len(results_list) > limit:
-                return True
-            if ie[0] not in grounded_vars.values():
-                if not lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=shifted_cand[1:],
-                                   open_vars=[v for v in open_vars if v != current_variable],
-                                   grounded_vars={**grounded_vars, current_variable: ie[0]},
-                                   results_list=results_list, onto_processor=onto_processor, limit=limit):
-                    return False
-
-    #Option 3: both are grounded, check if this link also exists
+    elif current_atom[1] not in grounded_vars.keys():
+        # Option 2: the object was previously grounded, the subject is not
+        known_var_pos = 2
+        current_target_var_pos = 1
+        current_target_var_pos_in_nx = 0
+        edges = kg.in_edges(grounded_vars[current_atom[known_var_pos]], keys=True)
     else :
-        if not kg.has_edge(grounded_vars[shifted_cand[0][1]], grounded_vars[shifted_cand[0][2]], key=target_prop):
+        # Option 3: both are grounded, check if this link also exists
+        if not kg.has_edge(grounded_vars[rotated_remaining_rule[0][1]], grounded_vars[rotated_remaining_rule[0][2]], key=target_prop):
             return False
         else:
             return lookforgrounding(kg=kg, target_pattern=target_pattern,
-                                   remaining_rule=shifted_cand[1:],
+                                   remaining_rule=rotated_remaining_rule[1:],
                                    open_vars=open_vars,
                                    grounded_vars=grounded_vars,
                                    results_list=results_list, onto_processor=onto_processor, limit=limit)
 
+
+    if len(edges) == 0:
+        # there is no edge
+        return True
+    relevant_edges = [edge for edge in edges if edge[2] == target_prop]
+
+    current_variable = current_atom[current_target_var_pos]
+    for e in relevant_edges:
+        if len(results_list) > limit:
+            return True
+        if e[current_target_var_pos_in_nx] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
+            if not lookforgrounding(kg=kg, target_pattern=target_pattern,
+                                    remaining_rule=rotated_remaining_rule[1:],
+                                    open_vars=[v for v in open_vars if v != current_variable],
+                                    grounded_vars={**grounded_vars, current_variable: e[current_target_var_pos_in_nx]},
+                                    results_list=results_list, onto_processor=onto_processor,
+                                    limit=limit):
+                return False
     return True
-#%%

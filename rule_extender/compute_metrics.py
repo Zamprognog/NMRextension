@@ -30,7 +30,7 @@ with open(train, 'r') as rf:
     for line in rf.readlines():
         s, p, o = line.strip('\n').split('\t')
         kg.add_edge(s, o, key=p)
-for pfilename in ['../temp/amie_test_predictions.txt','../temp/anyburl_test_predictions.txt', '../rule_mining/NELL995/NELL995_predictions']:
+for pfilename in ['../temp/amie_base_test_predictions.txt','../temp/amie_test_predictions.txt','../temp/anyburl_base_test_predictions.txt', '../temp/anyburl_test_predictions.txt']:
     print(pfilename)
     ks = [1,5,10]
     hits= [0.0,0.0,0.0]
@@ -72,3 +72,4 @@ for pfilename in ['../temp/amie_test_predictions.txt','../temp/anyburl_test_pred
             print(f'hits@{k}: {hits[idx]/(2*i)}')
         print(f'mrr: {mrr/(2*i)}')
         print(f'sem10s: {sem10s/triples_with_pred_s}\tsem10o: {sem10o/triples_with_pred_o}')
+        print(f'sem10: {(sem10s/triples_with_pred_s + sem10o/triples_with_pred_o)/2}')

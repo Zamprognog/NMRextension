@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 #todo: is to be parsed programmatically in the future
 dataset_folder = ROOT_DIR / 'datasets'
 dataset_name= 'NELL995'
-# rules_file= ROOT_DIR / "rule_mining" / dataset_name / "split_mined_rules-100"
+#rules_file= ROOT_DIR / "rule_mining" / dataset_name / "split_mined_rules-1000"
 rules_file= ROOT_DIR / "rule_mining" / dataset_name / "amie_mined_rules_aligned.tsv"
 train = dataset_folder / dataset_name / "NELL995_train.tsv"
 valid =  dataset_folder / dataset_name /  "NELL995_valid.tsv"
@@ -20,7 +20,7 @@ def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
 N = 3000
 
 
-onto_p = onto_processor(str(schema_path), def_uri, checkSem=True)
+onto_p = onto_processor(str(schema_path), def_uri, checkSem=False)
 rules,  pred_rules_index = parse_rules_file(str(rules_file))
 
 
@@ -33,7 +33,7 @@ with open(train, 'r') as rf:
 
 
 start = time.time()
-generate_predictions(train_kg=graph_train, test_file=test, out_file=str(temp_dir / 'amie_test_predictions.txt'),
+generate_predictions(train_kg=graph_train, test_file=test, out_file=str(temp_dir / 'amie_base_test_predictions.txt'),
                      onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
 print(time.time() - start)
 print(onto_p.get_stats())

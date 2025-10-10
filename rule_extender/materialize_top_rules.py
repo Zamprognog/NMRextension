@@ -13,12 +13,13 @@ from rule_extender.apply_rules import *
 from pathlib import Path
 from rule_extender.onto_processor import onto_processor
 import time
+from rule_extender.lookforgrounding import lookforgrounding
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 #todo: is to be parsed programmatically in the future
 dataset_folder = ROOT_DIR / 'datasets'
 dataset_name= 'NELL995'
-rules_file= ROOT_DIR / "rule_mining" / dataset_name / "split_mined_rules-100"
+
 train = dataset_folder / dataset_name / "NELL995_train.tsv"
 valid =  dataset_folder / dataset_name /  "NELL995_valid.tsv"
 test =   dataset_folder / dataset_name /  "NELL995_test.tsv"
@@ -56,11 +57,15 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
         for candidate_subject in base_graph.nodes():
             all_valid_groundings = set()
             open_variables = list(set([t[1] for t in rule] + [t[2] for t in rule])) #variables to be assigned
-            lookforpath(kg=base_graph, target_pattern= {'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
-                        remaining_rule=rule[1:], last_assigned_variable=rule[0][1],
-                        open_vars=[v for v in open_variables if v!= rule[0][1]],
-                        grounded_vars={rule[0][1]:candidate_subject},
-                        results_list= all_valid_groundings, onto_processor=onto_p, limit=400)
+            # lookforpath(kg=base_graph, target_pattern= {'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
+            #             remaining_rule=rule[1:], last_assigned_variable=rule[0][1],
+            #             open_vars=[v for v in open_variables if v!= rule[0][1]],
+            #             grounded_vars={rule[0][1]:candidate_subject},
+            #             results_list= all_valid_groundings, onto_processor=onto_p, limit=400)
+            lookforgrounding(kg=base_graph, target_pattern={'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
+                             remaining_rule=rule[1:], open_vars=[v for v in open_variables if v!= rule[0][1]],
+                             grounded_vars={rule[0][1]:candidate_subject},
+                             results_list=all_valid_groundings, onto_processor=onto_p, limit=400)
             if len(all_valid_groundings) > 0:
                 num_new_triples += len(all_valid_groundings)
                 for o in all_valid_groundings:
@@ -102,7 +107,16 @@ def nell_to_triples(materialized_nell_file, nell_facts_file):
 
 
 
-materialize(schema_path, rules_file, train, valid, test, '../temp/nmr_NELL_materialized_graph.txt', checkSem=True)
-nell_to_triples('../temp/nmr_NELL_materialized_graph.txt', '../temp/nmr_NELL_facts_materialized.nt')
+for expname,rules_file_name, check in [('NELL_anyburl_nmr','split_mined_rules-1000', True),('NELL_anyburl','split_mined_rules-1000', False),
+                                       ('NELL_amie_nmr','amie_mined_rules_aligned.tsv',True), ('NELL_amie','amie_mined_rules_aligned.tsv',False)]:
+    output_triples = '../temp/' + expname + '_materialized_graph.txt'
+    nt_facts_file= '../temp/' + expname + '_facts_materialized.nt'
+    rules_file_path = str(ROOT_DIR / "rule_mining" / dataset_name / rules_file_name)
+    materialize(schema_path, rules_file_path, train, valid, test, output_triples, checkSem=check)
+    nell_to_triples(output_triples, nt_facts_file)
+
+
+# materialize(schema_path, rules_file, train, valid, test, '../temp/NELL_amie_materialized_graph.txt', checkSem=False)
+# nell_to_triples('../temp/NELL_amie_nmr_materialized_graph.txt', '../temp/NELL_amie_nmr_facts_materialized.nt')
 # materialize(schema_path, rules_file, train, valid, test, '../temp/base_NELL_materialized_graph.txt', checkSem=False)
 # nell_to_triples('../temp/base_NELL_materialized_graph.txt', '../temp/base_NELL_facts_materialized.nt')
