@@ -15,17 +15,7 @@ from rule_extender.onto_processor import onto_processor
 import time
 from rule_extender.lookforgrounding import lookforgrounding
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-#todo: is to be parsed programmatically in the future
-dataset_folder = ROOT_DIR / 'datasets'
-dataset_name= 'NELL995'
 
-train = dataset_folder / dataset_name / "NELL995_train.tsv"
-valid =  dataset_folder / dataset_name /  "NELL995_valid.tsv"
-test =   dataset_folder / dataset_name /  "NELL995_test.tsv"
-schema_path = dataset_folder / dataset_name / "NELL.ontology.ttl"
-temp_dir = ROOT_DIR / 'temp'
-def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
 
 def materialize(schema_path, rules_file_path, train_path, valid_path, test_path, output_triples_path,checkSem, N=100):
     '''
@@ -39,8 +29,8 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
     :param N:
     :return:
     '''
-    onto_p = onto_processor(str(schema_path), def_uri, checkSem=checkSem)
-    rules, pred_rules_index = parse_rules_file(str(rules_file_path))
+    onto_p = onto_processor(schema_path, def_uri, checkSem=checkSem)
+    rules, pred_rules_index = parse_rules_file(rules_file_path)
 
     #build the graph
     base_graph = nx.MultiDiGraph()
@@ -107,15 +97,32 @@ def nell_to_triples(materialized_nell_file, nell_facts_file):
 
 
 
-for expname,rules_file_name, check in [('NELL_anyburl_nmr','split_mined_rules-1000', True),('NELL_anyburl','split_mined_rules-1000', False),
-                                       ('NELL_amie_nmr','amie_mined_rules_aligned.tsv',True), ('NELL_amie','amie_mined_rules_aligned.tsv',False)]:
-    output_triples = '../temp/' + expname + '_materialized_graph.txt'
-    nt_facts_file= '../temp/' + expname + '_facts_materialized.nt'
-    rules_file_path = str(ROOT_DIR / "rule_mining" / dataset_name / rules_file_name)
-    materialize(schema_path, rules_file_path, train, valid, test, output_triples, checkSem=check)
-    nell_to_triples(output_triples, nt_facts_file)
 
 
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+#todo: is to be parsed programmatically in the future
+dataset_folder = ROOT_DIR / 'datasets'
+dataset_name= 'NELL995'
+
+train = str(dataset_folder / dataset_name / "NELL995_train.tsv")
+valid =  str(dataset_folder / dataset_name /  "NELL995_valid.tsv")
+test =   str(dataset_folder / dataset_name /  "NELL995_test.tsv")
+schema_path = str(dataset_folder / dataset_name / "NELL.ontology.ttl")
+temp_dir = str(ROOT_DIR / 'temp')
+def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
+
+materialize('../hetionet_demo/hetio_train_graph.nt', '../hetionet_demo/rules_nice-100',
+            '../hetionet_demo/hetio_train_nice.tsv', '../hetionet_demo/hetio_validation_nice.tsv',
+            '../hetionet_demo/hetio_test_nice.tsv', '../hetionet_demo/materialized_graph.txt', checkSem=False)
+
+# for expname,rules_file_name, check in [('NELL_anyburl_nmr','split_mined_rules-1000', True),('NELL_anyburl','split_mined_rules-1000', False),
+#                                        ('NELL_amie_nmr','amie_mined_rules_aligned.tsv',True), ('NELL_amie','amie_mined_rules_aligned.tsv',False)]:
+#     output_triples = '../temp/' + expname + '_materialized_graph.txt'
+#     nt_facts_file= '../temp/' + expname + '_facts_materialized.nt'
+#     rules_file_path = str(ROOT_DIR / "rule_mining" / dataset_name / rules_file_name)
+#     materialize(schema_path, rules_file_path, train, valid, test, output_triples, checkSem=check)
+#     nell_to_triples(output_triples, nt_facts_file)
 # materialize(schema_path, rules_file, train, valid, test, '../temp/NELL_amie_materialized_graph.txt', checkSem=False)
 # nell_to_triples('../temp/NELL_amie_nmr_materialized_graph.txt', '../temp/NELL_amie_nmr_facts_materialized.nt')
 # materialize(schema_path, rules_file, train, valid, test, '../temp/base_NELL_materialized_graph.txt', checkSem=False)

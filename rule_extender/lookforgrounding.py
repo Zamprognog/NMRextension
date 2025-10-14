@@ -32,18 +32,18 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
             if onto_processor.violates_dr_constraint(cName=to_add.split('_')[0], pName=target_pattern['property'], checkRange=target_pattern['isObject']):
                 # dom/range exception condition
                 return False
-            if onto_processor.is_symmetric((target_pattern['property'])):
-                #this is a STRONG commitment but follows from cwa
-                if target_pattern['isObject'] and not kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
-                    return False
-                if not target_pattern['isObject'] and not kg.has_edge(target_pattern['base_var'],
-                                                                  target_pattern['target_var']):
-                    return False
-            if onto_processor.is_asymmetric((target_pattern['property'])):
-                if target_pattern['isObject'] and kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
-                    return False
-                if not target_pattern['isObject'] and kg.has_edge(target_pattern['base_var'], target_pattern['target_var']):
-                    return False
+            # if onto_processor.is_symmetric((target_pattern['property'])):
+            #     #this is a STRONG commitment but follows from cwa
+            #     if target_pattern['isObject'] and not kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
+            #         return False
+            #     if not target_pattern['isObject'] and not kg.has_edge(target_pattern['base_var'],
+            #                                                       target_pattern['target_var']):
+            #         return False
+            # if onto_processor.is_asymmetric((target_pattern['property'])):
+            #     if target_pattern['isObject'] and kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
+            #         return False
+            #     if not target_pattern['isObject'] and kg.has_edge(target_pattern['base_var'], target_pattern['target_var']):
+            #         return False
         if  to_add not in results_list:
             #congrats, no exceptions: add to allowed groundings for the rule
             results_list.add(to_add)
