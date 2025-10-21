@@ -9,15 +9,15 @@ from IPython.core.magic import on_off
 from html5rdf.constants import entities
 
 from rule_extender.utils import *
-from rule_extender.apply_rules import *
+from rule_extender.generate_predictions import *
 from pathlib import Path
 from rule_extender.onto_processor import onto_processor
 import time
 from rule_extender.lookforgrounding import lookforgrounding
 
 
-
-def materialize(schema_path, rules_file_path, train_path, valid_path, test_path, output_triples_path,checkSem, N=100):
+#todo: standardize ontology/schema/train
+def materialize(schema_path, rules_file_path, train_path, valid_path, test_path, output_triples_path, new_triples_path, checkSem, N=100):
     '''
     Materializes the first N rules
     :param schema_path:
@@ -30,6 +30,7 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
     :return:
     '''
     onto_p = onto_processor(schema_path, def_uri, checkSem=checkSem)
+    onto_p.find_direct_types(schema_path)
     rules, pred_rules_index = parse_rules_file(rules_file_path)
 
     #build the graph
@@ -45,6 +46,8 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
     num_new_triples = 0
     for conf,rule in rules[:N]:
         for candidate_subject in base_graph.nodes():
+            if checkSem and onto_p.violates_dr_constraint(currentName=candidate_subject,pName=rule[0][0], checkRange=False):
+                continue
             all_valid_groundings = set()
             open_variables = list(set([t[1] for t in rule] + [t[2] for t in rule])) #variables to be assigned
             # lookforpath(kg=base_graph, target_pattern= {'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
@@ -63,10 +66,12 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
     print(num_new_triples)
 
     mat_graph = nx.compose(base_graph, new_triples)
-    with open(output_triples_path, 'w') as wf:
+    with open(output_triples_path.replace('.txt',f'_{checkSem}.txt'), 'w') as wf:
         for out_node, in_node, key in mat_graph.edges(keys=True):
             wf.write(f"{out_node} {key} {in_node} .\n")
-
+    with open(new_triples_path.replace('.txt',f'_{checkSem}.txt'), 'w') as ntf:
+        for out_node, in_node, key in new_triples.edges(keys=True):
+            ntf.write(f"{out_node} {key} {in_node} .\n")
 def nell_to_triples(materialized_nell_file, nell_facts_file):
     '''
     Converts the new triples from materializing the rules into a nt file adding the appropriate IRIs and typing.
@@ -105,16 +110,17 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 dataset_folder = ROOT_DIR / 'datasets'
 dataset_name= 'NELL995'
 
-train = str(dataset_folder / dataset_name / "NELL995_train.tsv")
-valid =  str(dataset_folder / dataset_name /  "NELL995_valid.tsv")
-test =   str(dataset_folder / dataset_name /  "NELL995_test.tsv")
-schema_path = str(dataset_folder / dataset_name / "NELL.ontology.ttl")
-temp_dir = str(ROOT_DIR / 'temp')
+# train = str(dataset_folder / dataset_name / "NELL995_train.tsv")
+# valid =  str(dataset_folder / dataset_name /  "NELL995_valid.tsv")
+# test =   str(dataset_folder / dataset_name /  "NELL995_test.tsv")
+# schema_path = str(dataset_folder / dataset_name / "NELL.ontology.ttl")
+# temp_dir = str(ROOT_DIR / 'temp')
 def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
 
-materialize('../hetionet_demo/hetio_train_graph.nt', '../hetionet_demo/rules_nice-100',
+materialize('../hetionet_demo/hetio_train_graph.nt', '../hetionet_demo/rules_demo',
             '../hetionet_demo/hetio_train_nice.tsv', '../hetionet_demo/hetio_validation_nice.tsv',
-            '../hetionet_demo/hetio_test_nice.tsv', '../hetionet_demo/materialized_graph.txt', checkSem=False)
+            '../hetionet_demo/hetio_test_nice.tsv', '../hetionet_demo/materialized_graph.txt',
+            '../hetionet_demo/new_triples.txt',checkSem=True, N=10)
 
 # for expname,rules_file_name, check in [('NELL_anyburl_nmr','split_mined_rules-1000', True),('NELL_anyburl','split_mined_rules-1000', False),
 #                                        ('NELL_amie_nmr','amie_mined_rules_aligned.tsv',True), ('NELL_amie','amie_mined_rules_aligned.tsv',False)]:

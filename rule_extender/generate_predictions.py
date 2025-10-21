@@ -15,7 +15,7 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_l
         if len(unique_predictions) > limit:
             # rationale is that the rankings and prediction are accurate up to N, usually 100
             break
-        all_valid_groundings = set() #this is the results of all possible grounding of the target variable
+        all_valid_groundings = set() #this is the results of all possible groundings of the target variable
         open_variables = list(set([t[1] for t in cand] + [t[2] for t in cand])) #variables to be assigned
 
         if mask_object:
@@ -24,16 +24,21 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_l
         else:
             base_var = cand[0][2]
             target_var = cand[0][1]
+        if onto_processor.checkSem and onto_processor.violates_dr_constraint(currentName=known_entity, pName=triple.iloc[1], checkRange=not mask_object):
+            # if objects are masked, subject is known, so check if the subject aligns with the head property's domain requirement
+            # if subjects are masked, object is known so check for range2
+            rule_groundings_are_valid = False
+        else:
 
-        counts = lookforgrounding(kg=kg,
-                              remaining_rule=cand[1:],
-                              target_pattern={'base_var': base_var, 'target_var': target_var,
-                                              'property': triple.iloc[1], 'isObject': mask_object},
-                              open_vars=[v for v in open_variables if v != base_var],
-                              grounded_vars={base_var: known_entity},
-                              results_list=all_valid_groundings, onto_processor=onto_processor,
-                              limit=limit)
-        if counts and len(all_valid_groundings) > 0:  # counts == True if not exception triggered
+            rule_groundings_are_valid = lookforgrounding(kg=kg,
+                                  remaining_rule=cand[1:],
+                                  target_pattern={'base_var': base_var, 'target_var': target_var,
+                                                  'property': triple.iloc[1], 'isObject': mask_object},
+                                  open_vars=[v for v in open_variables if v != base_var],
+                                  grounded_vars={base_var: known_entity},
+                                  results_list=all_valid_groundings, onto_processor=onto_processor,
+                                  limit=limit)
+        if rule_groundings_are_valid and len(all_valid_groundings) > 0:  # counts == True if not exception triggered
             # update the list of predictions and the list of unique predictions
             if conf in predictions.keys():
                 predictions[conf] = predictions[conf].union(all_valid_groundings)
@@ -62,8 +67,8 @@ def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rul
             candidate_rules = pred_rules_index[p] if p in pred_rules_index.keys() else []
 
             sorted_o_predictions = generate_triple_predictions(kg=train_kg, triple=trip, target_loc=2,
-                                                                      candidate_rules=candidate_rules, limit=limit,
-                                                                      mask_object=True,onto_processor=onto_processor)
+                                                                          candidate_rules=candidate_rules, limit=limit,
+                                                                          mask_object=True,onto_processor=onto_processor)
 
             sorted_s_predictions = generate_triple_predictions(kg = train_kg, triple=trip, target_loc=0,
                                                                       candidate_rules = candidate_rules, limit = limit,

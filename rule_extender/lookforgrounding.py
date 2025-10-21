@@ -16,8 +16,9 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
 
     :return:
     '''
-
+    ###
     #base case: all variables found a grounding, we check if it is valid
+    ###
     if len(open_vars) ==0: # all variables are grounded
         to_add = grounded_vars[target_pattern['target_var']]
         if onto_processor.checkSem:
@@ -29,7 +30,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
                 # functional exception condition: prop is functional, we are predicting subjects, the subject has already a different s p edge
                 onto_processor.func_trigger()
                 return False
-            if onto_processor.violates_dr_constraint(cName=to_add.split('_')[0], pName=target_pattern['property'], checkRange=target_pattern['isObject']):
+            if onto_processor.violates_dr_constraint(currentName=to_add, pName=target_pattern['property'], checkRange=target_pattern['isObject']):
                 # dom/range exception condition
                 return False
             # if onto_processor.is_symmetric((target_pattern['property'])):
@@ -49,7 +50,9 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
             results_list.add(to_add)
         return True
 
+    ###
     #iteration case: due to AMIE having different types of rules, we rotate the rule until we get one atom that is already instantiated
+    ###
     if remaining_rule[0][1] not in grounded_vars.keys() and remaining_rule[0][2] not in grounded_vars.keys():
         starting_i = next((i for i, sublist in enumerate(remaining_rule) if not grounded_vars.keys().isdisjoint(sublist[1:])),None)
         rotated_remaining_rule  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
@@ -59,25 +62,32 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
     current_atom = rotated_remaining_rule[0]
     target_prop = current_atom[0] #the type of edge
 
+    ###
+    # Option1: the subject was previously grounded, the object is not
+    ###
     if current_atom[2] not in grounded_vars.keys():
-        # Option1: the subject was previously grounded, the object is not
+
         known_var_pos = 1 #in the RULE syntax
         current_target_var_pos = 2 #in the RULE syntax
         current_target_var_pos_in_nx = 1 # in the NX syntax
         try:
             edges = kg.out_edges(grounded_vars[current_atom[known_var_pos]], keys=True)
         except IndexError:
-            print()
+            print('error')
 
-
+    ###
+    # Option 2: the object was previously grounded, the subject is not
+    ###
     elif current_atom[1] not in grounded_vars.keys():
-        # Option 2: the object was previously grounded, the subject is not
+
         known_var_pos = 2
         current_target_var_pos = 1
         current_target_var_pos_in_nx = 0
         edges = kg.in_edges(grounded_vars[current_atom[known_var_pos]], keys=True)
+
+    # Option 3: both are grounded, check if this link also exists
     else :
-        # Option 3: both are grounded, check if this link also exists
+
         if not kg.has_edge(grounded_vars[rotated_remaining_rule[0][1]], grounded_vars[rotated_remaining_rule[0][2]], key=target_prop):
             return False
         else:
@@ -87,13 +97,19 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
                                    grounded_vars=grounded_vars,
                                    results_list=results_list, onto_processor=onto_processor, limit=limit)
 
-
+    ###
+    # edges are computed, check if any is relevant
+    ###
     if len(edges) == 0:
         # there is no edge
         return True
     relevant_edges = [edge for edge in edges if edge[2] == target_prop]
 
     current_variable = current_atom[current_target_var_pos]
+
+    ###
+    # for each candidate link, proceed one step further
+    ###
     for e in relevant_edges:
         if len(results_list) > limit:
             return True

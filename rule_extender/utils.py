@@ -7,7 +7,9 @@ def parse_rule(line:str):
     conf, rule = line.replace('<=', '').split('\t')[-2:]
     # pattern = re.compile(r'(<\w+>)\((\w+),(\w+)\)')
     # pattern = re.compile(r'(<[^>]+>)\s*\(([^,]+),([^)]+)\)')
-    pattern = re.compile(r'(\w+)\((\w+),(\w+)\)')
+    # pattern = re.compile(r'(\w+)\((\w+),(\w+)\)') #this was for NELL
+    pattern = re.compile(r'(\S+?)\((\w+),(\w+)\)')
+
     conf = float(conf)
     matches = pattern.findall(rule)
     return conf, matches
@@ -36,7 +38,6 @@ def load_ontology(ontology_path: str):
 def find_functional_prop(ontology:Graph):
     query4functional = '''
     prefix xsd:     <http://www.w3.org/2001/XMLSchema#>
-    prefix nellonto:  <http://ste-lod-crew.fr/nell/ontology/>
     prefix owl:     <http://www.w3.org/2002/07/owl#>
     prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
     prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -48,30 +49,102 @@ def find_functional_prop(ontology:Graph):
     return [str(row.prop).split('/')[-1] for row in res4functional]
 
 def find_dom_range(ontology: Graph):
-    query4domrange = '''
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    SELECT
-      ?property
-      (GROUP_CONCAT(DISTINCT STR(?domain); separator=" | ") AS ?domains)
-      (GROUP_CONCAT(DISTINCT STR(?range); separator=" | ") AS ?ranges)
-    WHERE {
-      ?property rdfs:domain|rdfs:range [] .
-      OPTIONAL { ?property rdfs:domain ?domain . }
-      OPTIONAL { ?property rdfs:range ?range . }
-    }
-    GROUP BY ?property
+    # query4domrange = '''
+    # PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    # SELECT
+    #   ?property
+    #   (GROUP_CONCAT(DISTINCT STR(?domain); separator=" | ") AS ?domains)
+    #   (GROUP_CONCAT(DISTINCT STR(?range); separator=" | ") AS ?ranges)
+    # WHERE {
+    #   ?property rdfs:domain|rdfs:range [] .
+    #   OPTIONAL { ?property rdfs:domain ?domain . }
+    #   OPTIONAL { ?property rdfs:range ?range . }
+    # }
+    # GROUP BY ?property
+    #
+    # ORDER BY ?property
+    # '''
 
-    ORDER BY ?property
-    '''
+#     query4dom = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# PREFIX owl: <http://www.w3.org/2002/07/owl#>
+#
+# SELECT DISTINCT ?property ?domain
+# WHERE {
+#   ?property rdfs:domain ?domainNode .
+#
+#   {
+#     BIND(?domainNode AS ?domain)
+#     FILTER(ISURI(?domainNode))
+#   }
+#   UNION
+#   {
+#     ?domainNode owl:unionOf/rdf:rest* / rdf:first ?domain .
+#   }
+# }
+# ORDER BY ?property ?domain'''
+    query4dom= '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
-    res4domrange = ontology.query(query4domrange)
+SELECT DISTINCT ?property ?domain
+WHERE {
+  ?property rdfs:domain ?domainNode .
 
-    domain_range_dict = dict()
-    for res in res4domrange:
+  OPTIONAL {
+    ?domainNode owl:unionOf/rdf:rest*/rdf:first ?member .
+  }
+  BIND(IF(BOUND(?member), ?member, ?domainNode) AS ?domain)
+  FILTER(ISURI(?domain))
+}
+ORDER BY ?property ?domain'''
+
+#query4range = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# PREFIX owl: <http://www.w3.org/2002/07/owl#>
+#
+# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+# SELECT DISTINCT ?property ?range
+# WHERE {
+#   ?property a ?propType ;
+#             rdfs:range ?rangeNode .
+#   {
+#     BIND(?rangeNode AS ?range)
+#     FILTER(!ISBLANK(?rangeNode))
+#   }
+#   UNION
+#   {
+#     ?rangeNode owl:unionOf/rdf:rest* / rdf:first ?range .
+#   }
+# }
+# ORDER BY ?property ?range'''
+    query4range  = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+SELECT DISTINCT ?property ?range
+WHERE {
+  ?property rdfs:range ?rangeNode .
+
+  OPTIONAL {
+    ?rangeNode owl:unionOf/rdf:rest*/rdf:first ?member .
+  }
+  BIND(IF(BOUND(?member), ?member, ?rangeNode) AS ?range)
+  FILTER(ISURI(?range))
+}
+ORDER BY ?property ?range'''
+    #res4domrange = ontology.query(query4domrange)
+    res4dom = ontology.query(query4dom)
+    res4range = ontology.query(query4range)
+
+    domain_range_dict = defaultdict(lambda: ([], []))
+    for res in res4dom:
+
         # prop_dict[res.property] = (URIRef(res.domains),URIRef(res.ranges))
-        domain_range_dict[str(res.property).split('/')[-1]] = (str(res.domains).split('/')[-1],
-                                                               str(res.ranges).split('/')[-1])
-
+        # domain_range_dict[str(res.property).split('/')[-1]] = (str(res.domains).split('/')[-1],  str(res.ranges).split('/')[-1])
+        domain_range_dict[str(res.property)][0].append(str(res.domain))
+    for res in res4range:
+        domain_range_dict[str(res.property)][1].append(str(res.range))
 
     return domain_range_dict
 
@@ -89,8 +162,8 @@ def find_disjoint_classes(ontology: Graph):
 
     disjoint_dict = defaultdict(lambda: []) #some classes are not disjoint with anything
     for dw_res in res4disjoint:
-        className = str(dw_res["className"]).split('/')[-1]
-        dw_class = str(dw_res["dw"]).split('/')[-1]
+        className = str(dw_res["className"])
+        dw_class = str(dw_res["dw"])
         if className not in disjoint_dict.keys():
             disjoint_dict[className] = [dw_class]
         else:
@@ -111,16 +184,16 @@ def find_super_classes(ontology: Graph):
     '''
     res4super = ontology.query(query_super)
 
-    disjoint_dict = defaultdict(lambda: []) #some classes are not disjoint with anything
+    sc_dict = defaultdict(lambda: [])
     for sup_res in res4super:
-        className = str(sup_res["className"]).split('/')[-1]
-        super_class = str(sup_res["super"]).split('/')[-1]
-        if className not in disjoint_dict.keys():
-            disjoint_dict[className] = [super_class]
+        className = str(sup_res["className"])
+        super_class = str(sup_res["super"])
+        if className not in sc_dict.keys():
+            sc_dict[className] = [super_class]
         else:
-            disjoint_dict[className].append(super_class)
+            sc_dict[className].append(super_class)
 
-    return disjoint_dict
+    return sc_dict
 
 
 def find_asymmetric_properties(ontology: Graph):
@@ -134,7 +207,7 @@ def find_asymmetric_properties(ontology: Graph):
     '''
 
     res = ontology.query(query)
-    return [str(row.prop).split('/')[-1] for row in res]
+    return [str(row.prop) for row in res]
 
 def find_symmetric_properties(ontology: Graph):
     query = '''
@@ -147,7 +220,7 @@ def find_symmetric_properties(ontology: Graph):
     '''
 
     res = ontology.query(query)
-    return [str(row.prop).split('/')[-1] for row in res]
+    return [str(row.prop) for row in res]
 
 
 

@@ -13,15 +13,22 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 #todo: is to be parsed programmatically in the future
 dataset_folder = ROOT_DIR / 'datasets'
 dataset_name= 'NELL995'
-rules_file= ROOT_DIR / "rule_mining" / dataset_name / "split_mined_rules-100"
-train = dataset_folder / dataset_name / "NELL995_train.tsv"
-valid =  dataset_folder / dataset_name /  "NELL995_valid.tsv"
-test =   dataset_folder / dataset_name /  "NELL995_test.tsv"
-schema_path = dataset_folder / dataset_name / "NELL.ontology.ttl"
-temp_dir = ROOT_DIR / 'temp'
-def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
+# rules_file= ROOT_DIR / "rule_mining" / dataset_name / "split_mined_rules-100"
+# train = dataset_folder / dataset_name / "NELL995_train.tsv"
+# valid =  dataset_folder / dataset_name /  "NELL995_valid.tsv"
+# test =   dataset_folder / dataset_name /  "NELL995_test.tsv"
+# schema_path = dataset_folder / dataset_name / "NELL.ontology.ttl"
+# temp_dir = ROOT_DIR / 'temp'
+# def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
 N = 3000
-
+rules_file= '../hetionet_demo/rules_nice-100'
+train = '../hetionet_demo/hetionet/hetio_train_nice.tsv'
+valid =  '../hetionet_demo/hetionet/hetio_validation_nice.tsv'
+test =   '../hetionet_demo/hetionet/hetio_test_nice.tsv'
+schema_path = '../hetionet_demo/hetionet/hetionet_tbox.nt'
+output_file= '../hetionet_demo/hetionet/predictions_noCheck.txt'
+types_file = '../hetionet_demo/hetionet/hetionet_entity_types.nt'
+def_uri = 'http://ste-lod-crew.fr/nell/ontology/' #not really used
 
 onto_p = onto_processor(str(schema_path), def_uri, checkSem=True)
 
@@ -30,7 +37,8 @@ with open(train, 'r') as rf:
     for line in rf.readlines():
         s, p, o = line.strip('\n').split('\t')
         kg.add_edge(s, o, key=p)
-for pfilename in ['../temp/amie_base_test_predictions.txt','../temp/amie_test_predictions.txt','../temp/anyburl_base_test_predictions.txt', '../temp/anyburl_test_predictions.txt']:
+#for pfilename in ['../temp/amie_base_test_predictions.txt','../temp/amie_test_predictions.txt','../temp/anyburl_base_test_predictions.txt', '../temp/anyburl_test_predictions.txt']:
+for pfilename in ['../hetionet_demo/hetionet/predictions_checkSem.txt', '../hetionet_demo/hetionet/predictions_noCheck.txt']:
     print(pfilename)
     ks = [1,5,10]
     hits= [0.0,0.0,0.0]
