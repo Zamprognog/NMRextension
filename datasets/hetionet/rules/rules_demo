@@ -1,0 +1,2 @@
+1846	524	0.2838569880823402	http://example.org/expresses(X,Y) <= http://example.org/upregulates(X,Y)
+1779	353	0.19842608206857784	http://example.org/expresses(X,Y) <= http://example.org/downregulates(X,A), http://example.org/covaries(A,Y)

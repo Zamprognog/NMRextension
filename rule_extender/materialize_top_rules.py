@@ -16,7 +16,7 @@ import time
 from rule_extender.lookforgrounding import lookforgrounding
 
 
-#todo: standardize ontology/schema/train
+
 def materialize(schema_path, rules_file_path, train_path, valid_path, test_path, output_triples_path, new_triples_path, checkSem, N=100):
     '''
     Materializes the first N rules
@@ -63,6 +63,7 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
                 num_new_triples += len(all_valid_groundings)
                 for o in all_valid_groundings:
                     new_triples.add_edge(candidate_subject, o, key=rule[0][0])
+            #todo: need to modify lookforgrounding so that it prunes the search after having found one s,p,o. this is probably much more complicated
     print(num_new_triples)
 
     mat_graph = nx.compose(base_graph, new_triples)

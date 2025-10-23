@@ -1,0 +1,14 @@
+{
+  "dataset_name": "YAGO4.5-10",
+  "graph": "datasets/YAGO4.5/data/YAGO4.5_full_graph.nt",
+  "train": "datasets/YAGO4.5/data/YAGO4.5_train.tsv",
+  "valid": "datasets/YAGO4.5/data/YAGO4.5_validation.tsv",
+  "test": "datasets/YAGO4.5/data/YAGO4.5_test.tsv",
+  "test_debug": "datasets/YAGO4.5/data/debug_YAGO4.5_test.tsv",
+  "schema": "datasets/YAGO4.5/data/YAGO4.5_tbox.nt",
+  "types_file": "datasets/YAGO4.5/data/YAGO4.5_entity_types.nt",
+  "anyburl_rules": "datasets/YAGO4.5/rules/split_mined_rules-1000",
+  "amie_rules": "datasets/YAGO4.5/rules/amie_mined_rules_aligned_trip.tsv",
+  "predictions_dir": "datasets/YAGO4.5/predictions/",
+  "def_uri": "https://ste-lod-crew.fr/nell/ontology/"
+}

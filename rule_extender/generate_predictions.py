@@ -1,4 +1,3 @@
-from rule_extender.lookforpath import lookforpath
 from rule_extender.lookforgrounding import lookforgrounding
 import pandas as pd
 from rdflib import URIRef #todo: maybe remove this
@@ -45,14 +44,11 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_l
             else:
                 predictions[conf] = set(all_valid_groundings)
             unique_predictions = unique_predictions.union(all_valid_groundings)
-        # build the ranking
-        sorted_predictions = [pred for key in sorted(predictions.keys(), reverse=True) for pred in predictions[key]]
-        # aggregate according to 'max rank' criterion: only consider the highest conf rule for each predicted target
         if predictions is None:
             print('None here')
     return predictions
 
-def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 100,debug=False):
+def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 1000,debug=False):
 
     test_triples = pd.read_csv(test_file, sep= '\t', header = None, names = ['s','p','o'])
     if debug: test_triples = test_triples[:100]

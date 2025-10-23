@@ -46,7 +46,7 @@ class onto_processor:
                     tokens = line.replace('<','').replace('>','').split()
                     self.ent2type[tokens[0]].append(tokens[2])
 
-    def violates_dr_constraint(self, currentName:str, pName:str, checkRange:bool = True, classKnown =False):
+    def violates_dr_constraint(self, currentName:str, pName:str, checkRange:bool = True):
         '''
 
         :param currentName: name of the entity or class being analyzed, in some dataset the class is known a priori todo: remove this functionality
@@ -56,10 +56,7 @@ class onto_processor:
         :return: True if d/r constraints are violated, False otherwise
         '''
 
-        if classKnown:
-            super_classes = self.super_classes[currentName]
-        else:
-            super_classes = { superclass for t in  self.ent2type.get(currentName, []) for superclass in self.super_classes.get(t, []) }
+        super_classes = { superclass for t in  self.ent2type.get(currentName, []) for superclass in self.super_classes.get(t, []) }
 
         disjoin_req = { disjClass for c in super_classes for disjClass in self.disjoint_classes.get(c, [])}
 

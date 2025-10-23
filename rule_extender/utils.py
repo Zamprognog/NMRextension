@@ -46,93 +46,43 @@ def find_functional_prop(ontology:Graph):
     }
     '''
     res4functional = ontology.query(query4functional)
-    return [str(row.prop).split('/')[-1] for row in res4functional]
+    return [str(row.prop) for row in res4functional]
+
+    # return [str(row.prop).split('/')[-1] for row in res4functional]
+
 
 def find_dom_range(ontology: Graph):
-    # query4domrange = '''
-    # PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    # SELECT
-    #   ?property
-    #   (GROUP_CONCAT(DISTINCT STR(?domain); separator=" | ") AS ?domains)
-    #   (GROUP_CONCAT(DISTINCT STR(?range); separator=" | ") AS ?ranges)
-    # WHERE {
-    #   ?property rdfs:domain|rdfs:range [] .
-    #   OPTIONAL { ?property rdfs:domain ?domain . }
-    #   OPTIONAL { ?property rdfs:range ?range . }
-    # }
-    # GROUP BY ?property
-    #
-    # ORDER BY ?property
-    # '''
-
-#     query4dom = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-# PREFIX owl: <http://www.w3.org/2002/07/owl#>
-#
-# SELECT DISTINCT ?property ?domain
-# WHERE {
-#   ?property rdfs:domain ?domainNode .
-#
-#   {
-#     BIND(?domainNode AS ?domain)
-#     FILTER(ISURI(?domainNode))
-#   }
-#   UNION
-#   {
-#     ?domainNode owl:unionOf/rdf:rest* / rdf:first ?domain .
-#   }
-# }
-# ORDER BY ?property ?domain'''
     query4dom= '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        
+        SELECT DISTINCT ?property ?domain
+        WHERE {
+          ?property rdfs:domain ?domainNode .
+        
+          OPTIONAL {
+            ?domainNode owl:unionOf/rdf:rest*/rdf:first ?member .
+          }
+          BIND(IF(BOUND(?member), ?member, ?domainNode) AS ?domain)
+          FILTER(ISURI(?domain))
+        }
+        ORDER BY ?property ?domain'''
 
-SELECT DISTINCT ?property ?domain
-WHERE {
-  ?property rdfs:domain ?domainNode .
-
-  OPTIONAL {
-    ?domainNode owl:unionOf/rdf:rest*/rdf:first ?member .
-  }
-  BIND(IF(BOUND(?member), ?member, ?domainNode) AS ?domain)
-  FILTER(ISURI(?domain))
-}
-ORDER BY ?property ?domain'''
-
-#query4range = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-# PREFIX owl: <http://www.w3.org/2002/07/owl#>
-#
-# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-# SELECT DISTINCT ?property ?range
-# WHERE {
-#   ?property a ?propType ;
-#             rdfs:range ?rangeNode .
-#   {
-#     BIND(?rangeNode AS ?range)
-#     FILTER(!ISBLANK(?rangeNode))
-#   }
-#   UNION
-#   {
-#     ?rangeNode owl:unionOf/rdf:rest* / rdf:first ?range .
-#   }
-# }
-# ORDER BY ?property ?range'''
     query4range  = '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
-
-SELECT DISTINCT ?property ?range
-WHERE {
-  ?property rdfs:range ?rangeNode .
-
-  OPTIONAL {
-    ?rangeNode owl:unionOf/rdf:rest*/rdf:first ?member .
-  }
-  BIND(IF(BOUND(?member), ?member, ?rangeNode) AS ?range)
-  FILTER(ISURI(?range))
-}
-ORDER BY ?property ?range'''
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        
+        SELECT DISTINCT ?property ?range
+        WHERE {
+          ?property rdfs:range ?rangeNode .
+        
+          OPTIONAL {
+            ?rangeNode owl:unionOf/rdf:rest*/rdf:first ?member .
+          }
+          BIND(IF(BOUND(?member), ?member, ?rangeNode) AS ?range)
+          FILTER(ISURI(?range))
+        }
+        ORDER BY ?property ?range'''
     #res4domrange = ontology.query(query4domrange)
     res4dom = ontology.query(query4dom)
     res4range = ontology.query(query4range)
