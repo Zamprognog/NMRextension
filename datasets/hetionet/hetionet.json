@@ -7,7 +7,7 @@
   "test_debug": "datasets/hetionet/data/debug_hetio_test.tsv",
   "schema": "datasets/hetionet/data/hetionet_tbox.nt",
   "types_file": "datasets/hetionet/data/hetionet_entity_types.nt",
-  "anyburl_rules": "datasets/hetionet/rules/rules_nice-100",
+  "anyburl_rules": "datasets/hetionet/rules/hetionet_rules_anyburl-100",
   "amie_rules": "datasets/hetionet/rules/placeholder",
   "predictions_dir": "datasets/hetionet/predictions/",
   "def_uri": "http://example.org/"

@@ -1,11 +1,12 @@
 import networkx as nx
 from rule_extender.onto_processor import onto_processor
-def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
+def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remaining_rule:list,
                 open_vars:list, grounded_vars:dict, results_list:set, onto_processor:onto_processor,
                 limit:int):
     '''
 
     :param kg: the input graph
+    :param filter: nodes that are already known
     :param target_pattern: target variable, property, variable positon(s or o)
     :param remaining_rule: remaining patterns in the CP rule
     :param open_vars: list of variables yet to be assigned
@@ -19,8 +20,18 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
     ###
     #base case: all variables found a grounding, we check if it is valid
     ###
+
+    if len(results_list) > limit:
+        #no new predictions needed
+        return True
+
     if len(open_vars) ==0: # all variables are grounded
         to_add = grounded_vars[target_pattern['target_var']]
+
+        if to_add in filter:
+            #the triple is known, do not add it to predictions
+            return True
+
         if onto_processor.checkSem:
             if onto_processor.is_functional(target_pattern['property']) and target_pattern['isObject'] and len(results_list)>2:
                 # functional exception condition: prop is functional, we are predicting objects, we have 2 different groundings
@@ -91,7 +102,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
         if not kg.has_edge(grounded_vars[rotated_remaining_rule[0][1]], grounded_vars[rotated_remaining_rule[0][2]], key=target_prop):
             return False
         else:
-            return lookforgrounding(kg=kg, target_pattern=target_pattern,
+            return lookforgrounding(kg=kg, filter=filter,target_pattern=target_pattern,
                                    remaining_rule=rotated_remaining_rule[1:],
                                    open_vars=open_vars,
                                    grounded_vars=grounded_vars,
@@ -114,7 +125,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,target_pattern:dict,remaining_rule:list,
         if len(results_list) > limit:
             return True
         if e[current_target_var_pos_in_nx] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
-            if not lookforgrounding(kg=kg, target_pattern=target_pattern,
+            if not lookforgrounding(kg=kg, filter=filter, target_pattern=target_pattern,
                                     remaining_rule=rotated_remaining_rule[1:],
                                     open_vars=[v for v in open_vars if v != current_variable],
                                     grounded_vars={**grounded_vars, current_variable: e[current_target_var_pos_in_nx]},

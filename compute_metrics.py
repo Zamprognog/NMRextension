@@ -3,15 +3,12 @@ from pathlib import Path
 import json
 import networkx as nx
 from rule_extender.onto_processor import onto_processor
+from collections import Counter, defaultdict
 import pandas as pd
 from IPython.core.completerlib import magic_run_re
 
-
-def aggregate_max(line:str, filter_triples):
-    predictions = list(set(line.strip().split()[1::2]))
-    return [p for p in predictions if p not in filter_triples]
-
-dataset= 'NELL995'
+#dataset= 'NELL995'
+dataset= 'hetionet'
 config_file = f'datasets/{dataset}/{dataset}.json'
 with open(config_file, 'r') as f:
     config = json.load(f)
@@ -39,46 +36,70 @@ for ds in [config['valid'], config['test']]:
 for ruletype in ['.txt', '_nm.txt']:
     pfilename = config['predictions_dir']+dataset+'_'+ruleset+ruletype
     print(pfilename)
-    ks = [1,5,10]
-    hits= [0.0,0.0,0.0]
+    ks = [1,3,9,10,11]
+    # hits= Counter()
+    # hits_s= Counter()
+    # hits_o= Counter()
+    hits= defaultdict(lambda:0)
+    hits_s= defaultdict(lambda:0)
+    hits_o= defaultdict(lambda:0)
     mrr = 0.0
     sem10s =0.0
     sem10o = 0.0
     i= 0
 
     with open(pfilename, 'r') as predictions_file:
+
         triples_with_pred_s = 0
         triples_with_pred_o = 0
+        cnt=0 #counting how many are filtered
         for tripleLine, subjectsLine, objectsLine in itertools.zip_longest(*[predictions_file] * 3, fillvalue=''):
             i = i + 1
             s,p,o = tripleLine.strip('\n').split()
 
-            filter_triples = {t for t in known_triples if t != (s,p,o)}
-            predictions_subjects = aggregate_max(subjectsLine, filter_triples)
-            predictions_objects = aggregate_max(objectsLine, filter_triples)
+            predictions_subjects = list(dict.fromkeys(subjectsLine.strip().split()[1::2]))[:100]
+            predictions_objects = list(dict.fromkeys(objectsLine.strip().split()[1::2]))[:100]
 
-            rank_s = predictions_subjects.index(s)+1 if s in predictions_subjects else 1e6
-            rank_o = predictions_objects.index(o)+1 if o in predictions_objects else 1e6
+
+            #compute filtered ranks
+            rank_s = 1
+            for ps in predictions_subjects:
+                if ps == s:
+                    break
+
+                if (ps, p, o) in known_triples:
+                    cnt = cnt + 1
+                    continue
+
+                rank_s += 1
+            if rank_s == len(predictions_subjects)+1:
+                rank_s = 1e6
+
+            rank_o = 1
+            for po in predictions_objects:
+                if po == o:
+                    break
+                if (s, p,po) in known_triples:
+                    cnt = cnt + 1
+                    continue
+                rank_o += 1
+
+            if rank_o == len(predictions_objects)+1:
+                rank_o = 1e6
+
+
             #hits and mrr
-            for idx,k in enumerate(ks) :
-                if rank_s <= k:
+            # for idx,k in enumerate(ks) :
+            for idx in range(10):
+                if rank_s <= idx +1:
                     hits[idx] += 1
-                if rank_o <= k:
+                    hits_s[idx] +=1
+                if rank_o <= idx+1:
                     hits[idx] += 1
+                    hits_o[idx] +=1
             mrr += 1.0/rank_s +1.0/rank_o
 
-
-            #keept it simple at sem@10
-            if len(predictions_subjects)>0:
-                triples_with_pred_s += 1
-                sem_s = onto_p.sem_at_k(kg,(s,p,o), predictions_subjects[:10], False)/min(len(predictions_subjects),10)
-                sem10s += sem_s
-            if len(predictions_objects)>0:
-                triples_with_pred_o += 1
-                sem_o = onto_p.sem_at_k(kg,(s, p, o), predictions_objects[:10], True)/min(len(predictions_objects),10)
-                sem10o += sem_o
-        for idx,k in enumerate(ks):
-            print(f'hits@{k}: {hits[idx]/(2*i)}')
+        for idx in [0,2,9]:
+            print(f'{hits[idx]/(2*i)}')
         print(f'mrr: {mrr/(2*i)}')
-        print(f'sem10s: {sem10s/triples_with_pred_s}\tsem10o: {sem10o/triples_with_pred_o}')
-        print(f'sem10: {(sem10s/triples_with_pred_s + sem10o/triples_with_pred_o)/2}')
+

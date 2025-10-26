@@ -4,7 +4,7 @@ from rdflib import URIRef #todo: maybe remove this
 import networkx as nx
 from rule_extender.onto_processor import onto_processor
 
-def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_loc: int, candidate_rules:list,
+def generate_triple_predictions(kg: nx.MultiDiGraph, filter: list, triple:pd.tseries, target_loc: int, candidate_rules:list,
                                 limit:int,onto_processor:onto_processor,mask_object:bool = True):
     known_entity = triple.iloc[2-target_loc]
     predictions = dict()
@@ -29,7 +29,7 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_l
             rule_groundings_are_valid = False
         else:
 
-            rule_groundings_are_valid = lookforgrounding(kg=kg,
+            rule_groundings_are_valid = lookforgrounding(kg=kg, filter=filter,
                                   remaining_rule=cand[1:],
                                   target_pattern={'base_var': base_var, 'target_var': target_var,
                                                   'property': triple.iloc[1], 'isObject': mask_object},
@@ -48,7 +48,7 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, triple:pd.tseries, target_l
             print('None here')
     return predictions
 
-def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 1000,debug=False):
+def generate_predictions(train_kg, known_triples: nx.MultiDiGraph, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 100,debug=False):
 
     test_triples = pd.read_csv(test_file, sep= '\t', header = None, names = ['s','p','o'])
     if debug: test_triples = test_triples[:100]
@@ -61,12 +61,12 @@ def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rul
                 print(i)
 
             candidate_rules = pred_rules_index[p] if p in pred_rules_index.keys() else []
-
-            sorted_o_predictions = generate_triple_predictions(kg=train_kg, triple=trip, target_loc=2,
+            known_objects = [ent for ent, key_dict in known_triples[s].items() if p in key_dict and ent != o]
+            sorted_o_predictions = generate_triple_predictions(kg=train_kg,filter=known_objects, triple=trip, target_loc=2,
                                                                           candidate_rules=candidate_rules, limit=limit,
                                                                           mask_object=True,onto_processor=onto_processor)
-
-            sorted_s_predictions = generate_triple_predictions(kg = train_kg, triple=trip, target_loc=0,
+            known_subjects = [ent for ent, key_dict in known_triples.pred[o].items() if p in key_dict and ent != s]
+            sorted_s_predictions = generate_triple_predictions(kg = train_kg,filter=known_subjects, triple=trip, target_loc=0,
                                                                       candidate_rules = candidate_rules, limit = limit,
                                                                       mask_object=False,onto_processor=onto_processor)
             of.write(f'{s}\t{p}\t{o}\n')
@@ -74,3 +74,29 @@ def generate_predictions(train_kg, test_file, out_file, onto_processor, pred_rul
             of.write('subjects:\t' +  "".join(f"{pred}\t{key}\t" for key, string_list in sorted_s_predictions.items() for pred in string_list)+'\n')
             of.write('objects:\t' +  "".join(f"{pred}\t{key}\t" for key, string_list in sorted_o_predictions.items() for pred in string_list)+'\n')
 
+            #these lines are required if we want to evaluate with anyburl.Eval
+            # do.write(f'{s}\t{p}\t{o}\n')
+            # do.write('subjects:\t' + "".join(f"{pred}\t{key}\t" for key, string_list in aggregate_max(sorted_s_predictions).items() for pred in string_list) + '\n')
+            # do.write('objects:\t' + "".join( f"{pred}\t{key}\t" for key, string_list in aggregate_max(sorted_o_predictions).items() for pred in string_list) + '\n')
+
+
+
+def aggregate_max(sorted_s_predictions):
+    """
+    Creates a new prediction ditcionary (conf:[predictions]) filtered according to max aggregation.
+    Used if anyburl.Eval is to be used
+    Args:
+        sorted_s_predictions (dict): A dictionary where keys are confidence scores (float)
+                                     and values are lists of predictions.
+    Returns:
+        dict: A new dictionary with the same structure, but filtered via the max aggregation approach.
+    """
+    filtered_predictions = {}
+    seen_strings = set()
+    for score, predictions_list in sorted_s_predictions.items():
+        filtered_predictions[score] = []
+        for item_string in predictions_list:
+            if item_string not in seen_strings:
+                filtered_predictions[score].append(item_string)
+                seen_strings.add(item_string)
+    return {k: v for k, v in filtered_predictions.items() if v}
