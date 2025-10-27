@@ -87,7 +87,7 @@ class onto_processor:
         valid=0.0
         for target in predictions:
             # domain/range
-            if self.violates_dr_constraint(target.split('_')[0], triple[1], isObject):
+            if self.violates_dr_constraint(target, triple[1], isObject):
                 continue
 
             if triple[1] in self.functional_properties and self.violate_functionality(kg, triple):

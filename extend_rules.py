@@ -30,7 +30,7 @@ for dataset in ['hetionet']:
                 known_triples.add_edge(s, o, key=p)
 
     #we have two rulesets
-    for ruleset in ['anyburl']:
+    for ruleset in ['amie']:
         print(f'Using ruleset {ruleset}')
         rules_file = config[f'{ruleset}_rules']
         rules, pred_rules_index = parse_rules_file(rules_file)

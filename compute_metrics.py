@@ -7,8 +7,8 @@ from collections import Counter, defaultdict
 import pandas as pd
 from IPython.core.completerlib import magic_run_re
 
-#dataset= 'NELL995'
 dataset= 'hetionet'
+#dataset= 'hetionet'
 config_file = f'datasets/{dataset}/{dataset}.json'
 with open(config_file, 'r') as f:
     config = json.load(f)
@@ -16,9 +16,10 @@ with open(config_file, 'r') as f:
 
 N = 3000
 check_sem =True
-ruleset= 'anyburl'
+ruleset= 'amie'
 rules_file = config[f'{ruleset}_rules']
 onto_p = onto_processor(config['schema'], config['def_uri'], checkSem=check_sem)
+onto_p.find_direct_types(config['types_file'])
 kg = nx.MultiDiGraph()
 known_triples = set()
 with open(config['train'], 'r') as rf:
@@ -99,7 +100,21 @@ for ruletype in ['.txt', '_nm.txt']:
                     hits_o[idx] +=1
             mrr += 1.0/rank_s +1.0/rank_o
 
+            # kept it simple at sem@10
+            if len(predictions_subjects) > 0:
+                triples_with_pred_s += 1
+                sem_s = onto_p.sem_at_k(kg, (s, p, o), predictions_subjects[:10], False) / min(
+                    len(predictions_subjects), 10)
+                sem10s += sem_s
+            if len(predictions_objects) > 0:
+                triples_with_pred_o += 1
+                sem_o = onto_p.sem_at_k(kg, (s, p, o), predictions_objects[:10], True) / min(
+                    len(predictions_objects), 10)
+                sem10o += sem_o
+
+
         for idx in [0,2,9]:
             print(f'{hits[idx]/(2*i)}')
         print(f'mrr: {mrr/(2*i)}')
+        print(f'sem10: {((sem10s/triples_with_pred_s) + (sem10o/triples_with_pred_o))/2}')
 
