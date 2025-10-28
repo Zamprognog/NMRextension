@@ -14,23 +14,29 @@ from pathlib import Path
 from rule_extender.onto_processor import onto_processor
 import time
 from rule_extender.lookforgrounding import lookforgrounding
+import json
 
 
-
-def materialize(schema_path, rules_file_path, train_path, valid_path, test_path, output_triples_path, new_triples_path, checkSem, N=100):
+def materialize(config, output_triples_path, new_triples_path, checkSem, N=1):
     '''
-    Materializes the first N rules
-    :param schema_path:
-    :param rules_file_path:
-    :param train_path:
-    :param valid_path:
-    :param test_path:
+    Materializes the first N% rules
+    :param config:
     :param output_triples_path:
+    :param new_triples_path:
     :param N:
     :return:
     '''
+
+    schema_path = config['schema']
+    rules_file_path = config[f'{ruleset}_rules']
+    train_path = config['train']
+    valid_path = config['valid']
+    test_path = config['test']
+    def_uri = config['def_uri']
+
+
     onto_p = onto_processor(schema_path, def_uri, checkSem=checkSem)
-    onto_p.find_direct_types(schema_path)
+    onto_p.find_direct_types(config['types_file'])
     rules, pred_rules_index = parse_rules_file(rules_file_path)
 
     #build the graph
@@ -44,18 +50,15 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
 
     new_triples = nx.MultiDiGraph()
     num_new_triples = 0
-    for conf,rule in rules[:N]:
+    for conf,rule in rules[:int(len(rules)*N/100)]:
         for candidate_subject in base_graph.nodes():
             if checkSem and onto_p.violates_dr_constraint(currentName=candidate_subject,pName=rule[0][0], checkRange=False):
                 continue
             all_valid_groundings = set()
             open_variables = list(set([t[1] for t in rule] + [t[2] for t in rule])) #variables to be assigned
-            # lookforpath(kg=base_graph, target_pattern= {'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
-            #             remaining_rule=rule[1:], last_assigned_variable=rule[0][1],
-            #             open_vars=[v for v in open_variables if v!= rule[0][1]],
-            #             grounded_vars={rule[0][1]:candidate_subject},
-            #             results_list= all_valid_groundings, onto_processor=onto_p, limit=400)
-            lookforgrounding(kg=base_graph, target_pattern={'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
+
+            #graph already contains all known information, so filter is empty
+            lookforgrounding(kg=base_graph, filter=[], target_pattern={'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
                              remaining_rule=rule[1:], open_vars=[v for v in open_variables if v!= rule[0][1]],
                              grounded_vars={rule[0][1]:candidate_subject},
                              results_list=all_valid_groundings, onto_processor=onto_p, limit=400)
@@ -67,12 +70,15 @@ def materialize(schema_path, rules_file_path, train_path, valid_path, test_path,
     print(num_new_triples)
 
     mat_graph = nx.compose(base_graph, new_triples)
-    with open(output_triples_path.replace('.txt',f'_{checkSem}.txt'), 'w') as wf:
+    with open(output_triples_path, 'w') as wf:
         for out_node, in_node, key in mat_graph.edges(keys=True):
-            wf.write(f"{out_node} {key} {in_node} .\n")
-    with open(new_triples_path.replace('.txt',f'_{checkSem}.txt'), 'w') as ntf:
+            wf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
+    with open(new_triples_path, 'w') as ntf:
         for out_node, in_node, key in new_triples.edges(keys=True):
-            ntf.write(f"{out_node} {key} {in_node} .\n")
+            ntf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
+
+
+
 def nell_to_triples(materialized_nell_file, nell_facts_file):
     '''
     Converts the new triples from materializing the rules into a nt file adding the appropriate IRIs and typing.
@@ -103,34 +109,12 @@ def nell_to_triples(materialized_nell_file, nell_facts_file):
 
 
 
+dataset= 'hetionet'
+ruleset= 'amie'
+config_file = f'datasets/{dataset}/{dataset}.json'
+with open(config_file, 'r') as f:
+    config = json.load(f)
+check_sem =False
 
-
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-#todo: is to be parsed programmatically in the future
-dataset_folder = ROOT_DIR / 'datasets'
-dataset_name= 'NELL995'
-
-# train = str(dataset_folder / dataset_name / "NELL995_train.tsv")
-# valid =  str(dataset_folder / dataset_name /  "NELL995_valid.tsv")
-# test =   str(dataset_folder / dataset_name /  "NELL995_test.tsv")
-# schema_path = str(dataset_folder / dataset_name / "NELL.ontology.ttl")
-# temp_dir = str(ROOT_DIR / 'temp')
-def_uri = 'http://ste-lod-crew.fr/nell/ontology/'
-
-materialize('../hetionet_demo/hetio_train_graph.nt', '../hetionet_demo/rules_demo',
-            '../hetionet_demo/hetio_train_nice.tsv', '../hetionet_demo/hetio_validation_nice.tsv',
-            '../hetionet_demo/hetio_test_nice.tsv', '../hetionet_demo/materialized_graph.txt',
-            '../hetionet_demo/new_triples.txt',checkSem=True, N=10)
-
-# for expname,rules_file_name, check in [('NELL_anyburl_nmr','split_mined_rules-1000', True),('NELL_anyburl','split_mined_rules-1000', False),
-#                                        ('NELL_amie_nmr','amie_mined_rules_aligned.tsv',True), ('NELL_amie','amie_mined_rules_aligned.tsv',False)]:
-#     output_triples = '../temp/' + expname + '_materialized_graph.txt'
-#     nt_facts_file= '../temp/' + expname + '_facts_materialized.nt'
-#     rules_file_path = str(ROOT_DIR / "rule_mining" / dataset_name / rules_file_name)
-#     materialize(schema_path, rules_file_path, train, valid, test, output_triples, checkSem=check)
-#     nell_to_triples(output_triples, nt_facts_file)
-# materialize(schema_path, rules_file, train, valid, test, '../temp/NELL_amie_materialized_graph.txt', checkSem=False)
-# nell_to_triples('../temp/NELL_amie_nmr_materialized_graph.txt', '../temp/NELL_amie_nmr_facts_materialized.nt')
-# materialize(schema_path, rules_file, train, valid, test, '../temp/base_NELL_materialized_graph.txt', checkSem=False)
-# nell_to_triples('../temp/base_NELL_materialized_graph.txt', '../temp/base_NELL_facts_materialized.nt')
+materialize(config, output_triples_path=config['predictions_dir'] + f'materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
+            new_triples_path=config['predictions_dir'] +f'new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem, N=10)

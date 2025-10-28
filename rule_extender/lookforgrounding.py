@@ -28,7 +28,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     if len(open_vars) ==0: # all variables are grounded
         to_add = grounded_vars[target_pattern['target_var']]
 
-        if to_add in filter:
+        if len(filter) != 0 and to_add in filter:
             #the triple is known, do not add it to predictions
             return True
 
