@@ -6,7 +6,7 @@ from rule_extender.onto_processor import onto_processor
 import time
 
 # N = 3000
-for dataset in ['hetionet']:
+for dataset in ['NELL995','hetionet']:
     print(f'Computing predictions for dataset {dataset}')
 
     #loading configurations
@@ -30,7 +30,7 @@ for dataset in ['hetionet']:
                 known_triples.add_edge(s, o, key=p)
 
     #we have two rulesets
-    for ruleset in ['amie']:
+    for ruleset in ['anyburl','amie']:
         print(f'Using ruleset {ruleset}')
         rules_file = config[f'{ruleset}_rules']
         rules, pred_rules_index = parse_rules_file(rules_file)
@@ -52,4 +52,4 @@ for dataset in ['hetionet']:
             generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file,
                                  onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
             print(f'predictions computed in {time.time() - start} seconds')
-            print(onto_p.get_stats())
+            onto_p.print_stats()

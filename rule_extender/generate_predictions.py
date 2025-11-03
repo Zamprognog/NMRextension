@@ -23,20 +23,31 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter: list, triple:pd.tse
         else:
             base_var = cand[0][2]
             target_var = cand[0][1]
-        if onto_processor.checkSem and onto_processor.violates_dr_constraint(currentName=known_entity, pName=triple.iloc[1], checkRange=not mask_object):
-            # if objects are masked, subject is known, so check if the subject aligns with the head property's domain requirement
-            # if subjects are masked, object is known so check for range2
-            rule_groundings_are_valid = False
-        else:
+        if onto_processor.checkSem :
+            #these are 'in graph' checks
+            if onto_processor.violates_dr_constraint(currentName=known_entity, pName=triple.iloc[1], checkRange=not mask_object):
+                return predictions
 
-            rule_groundings_are_valid = lookforgrounding(kg=kg, filter=filter,
-                                  remaining_rule=cand[1:],
-                                  target_pattern={'base_var': base_var, 'target_var': target_var,
-                                                  'property': triple.iloc[1], 'isObject': mask_object},
-                                  open_vars=[v for v in open_variables if v != base_var],
-                                  grounded_vars={base_var: known_entity},
-                                  results_list=all_valid_groundings, onto_processor=onto_processor,
-                                  limit=limit)
+            if mask_object and onto_processor.is_functional(prop=triple.iloc[1]):
+                if any(edge[2] == triple.iloc[1] for edge in kg.out_edges(base_var, keys=True)):
+                    onto_processor.func_trigger()
+                    return predictions
+
+            if not mask_object and onto_processor.is_inverse_functional(prop=triple.iloc[1]):
+                if any(edge[2] == triple.iloc[1] for edge in kg.in_edges(base_var, keys=True)):
+                    onto_processor.ifunc_trigger()
+                    return predictions
+
+
+
+        rule_groundings_are_valid = lookforgrounding(kg=kg, filter=filter,
+                              remaining_rule=cand[1:],
+                              target_pattern={'base_var': base_var, 'target_var': target_var,
+                                              'property': triple.iloc[1], 'isObject': mask_object},
+                              open_vars=[v for v in open_variables if v != base_var],
+                              grounded_vars={base_var: known_entity},
+                              results_list=all_valid_groundings, onto_processor=onto_processor,
+                              limit=limit)
         if rule_groundings_are_valid and len(all_valid_groundings) > 0:  # counts == True if not exception triggered
             # update the list of predictions and the list of unique predictions
             if conf in predictions.keys():
@@ -44,8 +55,7 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter: list, triple:pd.tse
             else:
                 predictions[conf] = set(all_valid_groundings)
             unique_predictions = unique_predictions.union(all_valid_groundings)
-        if predictions is None:
-            print('None here')
+
     return predictions
 
 def generate_predictions(train_kg, known_triples: nx.MultiDiGraph, test_file, out_file, onto_processor, pred_rules_index:dict,limit:int = 100,debug=False):

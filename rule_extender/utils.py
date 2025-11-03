@@ -48,6 +48,18 @@ def find_functional_prop(ontology:Graph):
     res4functional = ontology.query(query4functional)
     return [str(row.prop) for row in res4functional]
 
+def find_inverse_functional_prop(ontology:Graph):
+    query4functional = '''
+        prefix xsd:     <http://www.w3.org/2001/XMLSchema#>
+        prefix owl:     <http://www.w3.org/2002/07/owl#>
+        prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+        prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        select distinct ?prop where {
+            ?prop a owl:InverseFunctionalProperty .
+        }
+        '''
+    res4functional = ontology.query(query4functional)
+    return [str(row.prop) for row in res4functional]
     # return [str(row.prop).split('/')[-1] for row in res4functional]
 
 
@@ -171,6 +183,5 @@ def find_symmetric_properties(ontology: Graph):
 
     res = ontology.query(query)
     return [str(row.prop) for row in res]
-
 
 

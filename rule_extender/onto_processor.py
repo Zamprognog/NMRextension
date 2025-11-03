@@ -3,7 +3,7 @@ import networkx as nx
 from rdflib import Graph
 from collections import defaultdict
 import re
-from rule_extender.utils import load_ontology, find_functional_prop, find_dom_range, find_disjoint_classes, \
+from rule_extender.utils import load_ontology, find_functional_prop, find_inverse_functional_prop, find_dom_range, find_disjoint_classes, \
     find_super_classes,find_asymmetric_properties,find_symmetric_properties
 
 
@@ -12,6 +12,7 @@ class onto_processor:
         self.def_uri = def_uri #for future proofing
         self.onto = load_ontology(ontology_file)
         self.functional_properties = find_functional_prop(self.onto)
+        self.inverse_functional_properties = find_inverse_functional_prop(self.onto)
         self.dom_ranges = find_dom_range(self.onto)
         self.disjoint_classes = find_disjoint_classes(self.onto)
         self.super_classes = find_super_classes(self.onto)
@@ -20,13 +21,14 @@ class onto_processor:
         # self.asym_classes= find_asymmm_classes(self.onto)
         self.ent2type = defaultdict(list)
         self.funcStats = 0
+        self.ifuncStats = 0
         self.drStats = 0
-        self.symStats= 0
         self.checkSem = checkSem
 
     def is_functional(self, prop:str):
         return prop in self.functional_properties
-
+    def is_inverse_functional(self, prop:str):
+        return prop in self.inverse_functional_properties
     def is_symmetric(self, prop:str):
         return prop in self.symmetric_properties
     def is_asymmetric(self, prop:str):
@@ -70,11 +72,6 @@ class onto_processor:
             return True
         return False
 
-    def func_trigger(self):
-        self.funcStats += 1
-
-    def get_stats(self):
-        return f'func: {self.funcStats}; dr: {self.drStats}; sym: {self.symStats}'
 
     def violate_functionality(self, kg: nx.MultiDiGraph, triple: tuple):
         out_edges = kg.out_edges(triple[0], keys=True)
@@ -95,3 +92,14 @@ class onto_processor:
             valid+=1
         #check d/r
         return valid
+
+    def func_trigger(self):
+        self.funcStats += 1
+
+    def ifunc_trigger(self):
+        self.ifuncStats += 1
+
+    def print_stats(self):
+        print(
+            f'found: {self.funcStats} functional exceptions; {self.ifuncStats} inv functional exceptions; {self.drStats} dr exceptions')
+

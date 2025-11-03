@@ -21,7 +21,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     #base case: all variables found a grounding, we check if it is valid
     ###
 
-    if len(results_list) > limit:
+    if 0 < limit < len(results_list):
         #no new predictions needed
         return True
 
@@ -33,29 +33,31 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
             return True
 
         if onto_processor.checkSem:
-            if onto_processor.is_functional(target_pattern['property']) and target_pattern['isObject'] and len(results_list)>2:
-                # functional exception condition: prop is functional, we are predicting objects, we have 2 different groundings
-                onto_processor.func_trigger()
-                return False
-            if onto_processor.is_functional(target_pattern['property']) and not target_pattern['isObject'] and any(edge[2] == target_pattern['property'] for edge in kg.out_edges(to_add, keys=True)):
-                # functional exception condition: prop is functional, we are predicting subjects, the subject has already a different s p edge
-                onto_processor.func_trigger()
-                return False
+            if onto_processor.is_functional(target_pattern['property']):
+
+                if target_pattern['isObject'] and len(results_list)>2:
+                    # functional exception condition: prop is functional, we are predicting objects, we have 2 different groundings
+                    onto_processor.func_trigger()
+                    return False
+                if not target_pattern['isObject'] and any(edge[2] == target_pattern['property'] for edge in kg.out_edges(to_add, keys=True)):
+                    # functional exception condition: prop is functional, we are predicting subjects, the subject has already a different s p edge
+                    onto_processor.func_trigger()
+                    return False
+
+            if onto_processor.is_inverse_functional(target_pattern['property']):
+
+                if target_pattern['isObject'] and any(edge[2] == target_pattern['property'] for edge in kg.in_edges(to_add, keys=True)):
+                    # inverse functional exception condition: prop is invfunct, we are predicting objects, the objects is already involved in p edges
+                    onto_processor.ifunct_trigger()
+                    return False
+                if not target_pattern['isObject'] and len(results_list)>2:
+                    # inverse functional exception condition: prop is invfunct, we are predicting subject, and more than one matches
+                    onto_processor.ifunct_trigger()
+                    return False
+
             if onto_processor.violates_dr_constraint(currentName=to_add, pName=target_pattern['property'], checkRange=target_pattern['isObject']):
-                # dom/range exception condition
                 return False
-            # if onto_processor.is_symmetric((target_pattern['property'])):
-            #     #this is a STRONG commitment but follows from cwa
-            #     if target_pattern['isObject'] and not kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
-            #         return False
-            #     if not target_pattern['isObject'] and not kg.has_edge(target_pattern['base_var'],
-            #                                                       target_pattern['target_var']):
-            #         return False
-            # if onto_processor.is_asymmetric((target_pattern['property'])):
-            #     if target_pattern['isObject'] and kg.has_edge(target_pattern['target_var'], target_pattern['base_var']):
-            #         return False
-            #     if not target_pattern['isObject'] and kg.has_edge(target_pattern['base_var'], target_pattern['target_var']):
-            #         return False
+
         if  to_add not in results_list:
             #congrats, no exceptions: add to allowed groundings for the rule
             results_list.add(to_add)
@@ -122,7 +124,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     # for each candidate link, proceed one step further
     ###
     for e in relevant_edges:
-        if len(results_list) > limit:
+        if 0 < limit < len(results_list):
             return True
         if e[current_target_var_pos_in_nx] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
             if not lookforgrounding(kg=kg, filter=filter, target_pattern=target_pattern,
