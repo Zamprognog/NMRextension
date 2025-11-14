@@ -51,7 +51,7 @@ class onto_processor:
     def violates_dr_constraint(self, currentName:str, pName:str, checkRange:bool = True):
         '''
 
-        :param currentName: name of the entity or class being analyzed, in some dataset the class is known a priori todo: remove this functionality
+    :param currentName: name of the entity or class being analyzed, in some dataset the class is known a priori todo: remove this functionality
         :param pName: name of the property for which we check domain/range
         :param checkRange: whether domain or range is being considered
         :param classKnown: together with currentName, in case currentName is already a class
@@ -67,7 +67,7 @@ class onto_processor:
         else:
             restrictions = self.get_domains(pName)
 
-        if all(restriction in disjoin_req for restriction in restrictions):
+        if len(restrictions)>0 and all(restriction in disjoin_req for restriction in restrictions):
             self.drStats +=1
             return True
         return False

@@ -5,8 +5,7 @@
 #anti patterns: functional, d/r
 
 import networkx as nx
-from IPython.core.magic import on_off
-from html5rdf.constants import entities
+
 
 from rule_extender.utils import *
 from rule_extender.generate_predictions import *
@@ -49,37 +48,45 @@ def materialize(config, output_triples_path, new_triples_path, checkSem, N=0.1):
                 base_graph.add_edge(s, o, key=p)
 
     new_triples = nx.MultiDiGraph()
+    triggered_rules_cnt = 0
     # num_new_triples = 0
-    rc = 0
+    start = time.time()
     for conf,rule in rules:
-        rc+=1
+        groundings_found = 0
         #materialize about 10% triples
-        if new_triples.number_of_edges() < N*base_graph.number_of_edges():
-            for candidate_subject in base_graph.nodes():
-                if check_sem:
-                    #it is always predicting ?o so check if s already causes any issue
-                    if onto_p.violates_dr_constraint(currentName=candidate_subject,pName=rule[0][0], checkRange=False):
-                        # s already violates the domain
+        if new_triples.number_of_edges() >= N*base_graph.number_of_edges():
+            break
+        for candidate_subject in base_graph.nodes():
+            if check_sem:
+                #it is always predicting ?o so check if s already causes any issue
+                if onto_p.violates_dr_constraint(currentName=candidate_subject,pName=rule[0][0], checkRange=False):
+                    # s already violates the domain
+                    continue
+                if onto_p.is_functional(prop=rule[0][0]):
+                    # s is already in a s,p triple
+                    if any(edge[2] == rule[0][0] for edge in base_graph.out_edges(candidate_subject, keys=True)):
+                        onto_p.func_trigger()
                         continue
-                    if onto_p.is_functional(prop=rule[0][0]):
-                        # s is already in a s,p triple
-                        if any(edge[2] == rule[0][0] for edge in base_graph.out_edges(candidate_subject, keys=True)):
-                            onto_p.func_trigger()
-                            continue
-                all_valid_groundings = set()
-                open_variables = list(set([t[1] for t in rule] + [t[2] for t in rule])) #variables to be assigned
+            all_valid_groundings = set()
+            open_variables = list(set([t[1] for t in rule] + [t[2] for t in rule])) #variables to be assigned
 
-                #graph already contains all known information, so filter is empty
-                lookforgrounding(kg=base_graph, filter=[], target_pattern={'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
-                                 remaining_rule=rule[1:], open_vars=[v for v in open_variables if v!= rule[0][1]],
-                                 grounded_vars={rule[0][1]:candidate_subject},
-                                 results_list=all_valid_groundings, onto_processor=onto_p, limit=-1)
+            #graph already contains all known information, so filter is empty
+            if lookforgrounding(kg=base_graph, filter=[], target_pattern={'base_var': rule[0][1], 'target_var':rule[0][2],'property':rule[0][0],'isObject':True},
+                             remaining_rule=rule[1:], open_vars=[v for v in open_variables if v!= rule[0][1]],
+                             grounded_vars={rule[0][1]:candidate_subject},
+                             results_list=all_valid_groundings, onto_processor=onto_p, limit=-1):
                 if len(all_valid_groundings) > 0:
+                    groundings_found += 1
                     # num_new_triples += len(all_valid_groundings)
                     for o in all_valid_groundings:
                         new_triples.add_edge(candidate_subject, o, key=rule[0][0])
-                #todo: need to modify lookforgrounding so that it prunes the search after having found one s,p,o. this is probably much more complicated
-    print(f'new triples: {new_triples.number_of_edges()}')
+        if groundings_found > 0:
+            triggered_rules_cnt += 1
+        # print(f'rule: {rule}, groundings found: {groundings_found}')
+    print(f'elapsed: {time.time() - start}')
+        # if groundings_found > 0:
+        #     print(rule)
+    print(f'triggered rules: {triggered_rules_cnt}, new triples: {new_triples.number_of_edges()}')
     onto_p.print_stats()
     mat_graph = nx.compose(base_graph, new_triples)
     with open(output_triples_path, 'w') as wf:
@@ -92,14 +99,17 @@ def materialize(config, output_triples_path, new_triples_path, checkSem, N=0.1):
 
 
 
-datasets = ['NELL995','hetionet']
-rulesets = ['anyburl','amie']
-checkSems = [False, True]
+# datasets = ['NELL995','hetionet','YAGO4.5']
+# rulesets = ['anyburl','amie']
+# checkSems = [False, True]
 
-# datasets = ['NELL995']
-# rulesets = ['anyburl']
-# checkSems = [True]
-
+# datasets = ['NELL995','hetionet','YAGO4.5']
+# rulesets = ['amie']
+# checkSems = [False, True]
+datasets = ['YAGO4.5']
+rulesets = ['anyburl']
+checkSems = [True]
+N=0.1
 for dataset in datasets:
     config_file = f'datasets/{dataset}/{dataset}.json'
     with open(config_file, 'r') as f:
@@ -110,5 +120,5 @@ for dataset in datasets:
             print(f'materializing {dataset} with {ruleset} rules, check sem {check_sem}')
 
 
-            materialize(config, output_triples_path=config['predictions_dir'] + f'{dataset}_materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
-            new_triples_path=config['predictions_dir'] +f'{dataset}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem, N=0.1)
+            materialize(config, output_triples_path=config['predictions_dir'] + f'{dataset}_{N}_materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
+            new_triples_path=config['predictions_dir'] +f'{dataset}_{N}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem, N=N)

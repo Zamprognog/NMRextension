@@ -20,6 +20,7 @@ def parse_rules_file(rules_file : str):
     with open(rules_file) as rf:
         for line in rf.readlines():
             rules.append(parse_rule(line))
+    rules = [r for r in rules if r[0]<0.9]
     rules = sorted(rules, key=lambda x: x[0], reverse=True)
 
     for rule in rules: #todo: this can be optimized with the above line
