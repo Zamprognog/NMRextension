@@ -14,9 +14,9 @@ from rule_extender.onto_processor import onto_processor
 import time
 from rule_extender.lookforgrounding import lookforgrounding
 import json
+from datetime import datetime
 
-
-def materialize(config, output_triples_path, new_triples_path, checkSem, N=0.1):
+def materialize(config, output_triples_path, new_triples_path, checkSem,ruleset, N=0.1):
     '''
     Materializes the first N% rules
     :param config:
@@ -32,11 +32,12 @@ def materialize(config, output_triples_path, new_triples_path, checkSem, N=0.1):
     valid_path = config['valid']
     test_path = config['test']
     def_uri = config['def_uri']
+    schema_processing_start = time.time()
 
-
-    onto_p = onto_processor(schema_path, def_uri, checkSem=checkSem)
+    onto_p = onto_processor(schema_path, def_uri, checkSem=checkSem, ruleset = ruleset)
     onto_p.find_direct_types(config['types_file'])
     rules, pred_rules_index = parse_rules_file(rules_file_path)
+    print(f'schema processed in {time.time() - schema_processing_start} seconds')
 
     #build the graph
     base_graph = nx.MultiDiGraph()
@@ -82,35 +83,38 @@ def materialize(config, output_triples_path, new_triples_path, checkSem, N=0.1):
                         new_triples.add_edge(candidate_subject, o, key=rule[0][0])
         if groundings_found > 0:
             triggered_rules_cnt += 1
-        # print(f'rule: {rule}, groundings found: {groundings_found}')
+        #print(f'rule: {rule}, groundings found: {groundings_found}, tot groundings: {new_triples.number_of_edges()}')
     print(f'elapsed: {time.time() - start}')
         # if groundings_found > 0:
         #     print(rule)
     print(f'triggered rules: {triggered_rules_cnt}, new triples: {new_triples.number_of_edges()}')
     onto_p.print_stats()
-    mat_graph = nx.compose(base_graph, new_triples)
-    with open(output_triples_path, 'w') as wf:
-        for out_node, in_node, key in mat_graph.edges(keys=True):
-            wf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
+    # mat_graph = nx.compose(base_graph, new_triples)
+    # with open(output_triples_path, 'w') as wf:
+    #     for out_node, in_node, key in mat_graph.edges(keys=True):
+    #         wf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
     with open(new_triples_path, 'w') as ntf:
         for out_node, in_node, key in new_triples.edges(keys=True):
             ntf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
 
 
-
+today = datetime.now()
+print(today.strftime("%A, %B %d, %Y"))
 
 # datasets = ['NELL995','hetionet','YAGO4.5']
 # rulesets = ['anyburl','amie']
 # checkSems = [False, True]
-
+#
 # datasets = ['NELL995','hetionet','YAGO4.5']
 # rulesets = ['amie']
 # checkSems = [False, True]
-datasets = ['YAGO4.5']
+datasets =['CSKG2']
 rulesets = ['anyburl']
 checkSems = [True]
-N=0.1
+checkSems = [False, True]
+N=0.3
 for dataset in datasets:
+    print(f'###\tdataset: {dataset}\t###\n')
     config_file = f'datasets/{dataset}/{dataset}.json'
     with open(config_file, 'r') as f:
         config = json.load(f)
@@ -121,4 +125,4 @@ for dataset in datasets:
 
 
             materialize(config, output_triples_path=config['predictions_dir'] + f'{dataset}_{N}_materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
-            new_triples_path=config['predictions_dir'] +f'{dataset}_{N}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem, N=N)
+            new_triples_path=config['predictions_dir'] +f'{dataset}_{N}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem,ruleset=ruleset, N=N)

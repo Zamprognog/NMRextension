@@ -2,8 +2,9 @@ import networkx as nx
 from rule_extender.onto_processor import onto_processor
 def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remaining_rule:list,
                 open_vars:list, grounded_vars:dict, results_list:set, onto_processor:onto_processor,
-                limit:int):
+                limit:int, limit_branching: int = 0):
     '''
+
 
     :param kg: the input graph
     :param filter: nodes that are already known
@@ -14,6 +15,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     :param results_list: list of current acceptable assignments of target_var
     :param onto_processor: functionalities to do semantic checks
     :param limit: limit to the additional assignments to be explored (limits search and won't be noticed in the hits@k measure)
+    :param limit_branching:
 
     :return:
     '''
@@ -27,6 +29,7 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
 
     if len(open_vars) ==0: # all variables are grounded
         to_add = grounded_vars[target_pattern['target_var']]
+
 
         if len(filter) != 0 and to_add in filter:
             #the triple is known, do not add it to predictions
@@ -63,12 +66,16 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
             results_list.add(to_add)
         return True
 
-    ###
-    #iteration case: due to AMIE having different types of rules, we rotate the rule until we get one atom that is already instantiated
-    ###
-    if remaining_rule[0][1] not in grounded_vars.keys() and remaining_rule[0][2] not in grounded_vars.keys():
-        starting_i = next((i for i, sublist in enumerate(remaining_rule) if not grounded_vars.keys().isdisjoint(sublist[1:])),None)
-        rotated_remaining_rule  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
+    if onto_processor.ruleset == 'amie':
+        ###
+        # iteration case: due to AMIE having different types of rules, we rotate the rule until we get one atom that is already instantiated
+        ###
+
+        if remaining_rule[0][1] not in grounded_vars.keys() and remaining_rule[0][2] not in grounded_vars.keys():
+            starting_i = next((i for i, sublist in enumerate(remaining_rule) if not grounded_vars.keys().isdisjoint(sublist[1:])),None)
+            rotated_remaining_rule  = remaining_rule[starting_i:] + remaining_rule[:starting_i]
+        else:
+            rotated_remaining_rule = remaining_rule
     else:
         rotated_remaining_rule = remaining_rule
 
@@ -102,13 +109,14 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     else :
 
         if not kg.has_edge(grounded_vars[rotated_remaining_rule[0][1]], grounded_vars[rotated_remaining_rule[0][2]], key=target_prop):
-            return False
+            return True
         else:
             return lookforgrounding(kg=kg, filter=filter,target_pattern=target_pattern,
                                    remaining_rule=rotated_remaining_rule[1:],
                                    open_vars=open_vars,
                                    grounded_vars=grounded_vars,
-                                   results_list=results_list, onto_processor=onto_processor, limit=limit)
+                                   results_list=results_list,
+                                    onto_processor=onto_processor, limit=limit, limit_branching=limit_branching)
 
     ###
     # edges are computed, check if any is relevant
@@ -118,6 +126,10 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
         return True
     relevant_edges = [edge for edge in edges if edge[2] == target_prop]
 
+    # this part aligns to anyburl, stopping if the branching factor is higher than 1000
+    if limit_branching and len(relevant_edges) > limit_branching:
+        onto_processor.branching_trigger()
+        return True
     current_variable = current_atom[current_target_var_pos]
 
     ###
@@ -126,12 +138,13 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
     for e in relevant_edges:
         if 0 < limit < len(results_list):
             return True
-        if e[current_target_var_pos_in_nx] not in grounded_vars.values():  # no going back, and also not picking an entity already assigned
+        if e[current_target_var_pos_in_nx] not in grounded_vars.values():  # object identity
             if not lookforgrounding(kg=kg, filter=filter, target_pattern=target_pattern,
                                     remaining_rule=rotated_remaining_rule[1:],
                                     open_vars=[v for v in open_vars if v != current_variable],
                                     grounded_vars={**grounded_vars, current_variable: e[current_target_var_pos_in_nx]},
-                                    results_list=results_list, onto_processor=onto_processor,
-                                    limit=limit):
+                                    results_list=results_list,
+                                    onto_processor=onto_processor,
+                                    limit=limit, limit_branching=limit_branching):
                 return False
     return True

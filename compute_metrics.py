@@ -7,8 +7,37 @@ from collections import Counter, defaultdict
 import pandas as pd
 from IPython.core.completerlib import magic_run_re
 
+def max_inclusive_sort(line):
 
-for dataset in ['NELL995','hetionet']:
+    scores_map = defaultdict(list)
+
+    for i in range(0, len(line), 2):
+        prediction = line[i]
+        confidence = float(line[i + 1])
+        scores_map[prediction].append(confidence)
+
+
+    grouped_by_confs = defaultdict(list)
+
+    for prediction, confidences in scores_map.items():
+
+        confidences.sort(reverse=True)
+        score_signature = tuple(confidences)
+        grouped_by_confs[score_signature].append(prediction)
+
+
+    sorted_signatures = sorted(grouped_by_confs.keys(), reverse=True)
+
+    final_result = []
+    for signature in sorted_signatures:
+        predictions_in_tie = sorted(grouped_by_confs[signature])
+        #final_result.append(predictions_in_tie)
+        final_result.extend(predictions_in_tie)
+
+    return final_result
+
+#for dataset in ['NELL995','hetionet']:
+for dataset in ['hetionet']:
 
     print(f'Computing metrics for {dataset}')
     config_file = f'datasets/{dataset}/{dataset}.json'
@@ -30,19 +59,22 @@ for dataset in ['NELL995','hetionet']:
                 known_triples.add((s, p, o))
 
     for ruleset in ['anyburl', 'amie']:
+    # for ruleset in ['amie']:
         print(f'ruleset: {ruleset}')
         rules_file = config[f'{ruleset}_rules']
         for check_sem, extension in [(False,'.txt'), (True, '_nm.txt')]:
+        #for check_sem, extension in [(True, '_nm.txt')]:
             print(f'with exceptions: {check_sem}')
 
-            onto_p = onto_processor(config['schema'], config['def_uri'], checkSem=check_sem)
+            onto_p = onto_processor(config['schema'], config['def_uri'], checkSem=check_sem, ruleset = ruleset)
             onto_p.find_direct_types(config['types_file'])
 
             #todo fix the naming similarly to 'materialized graph'
             # for ruletype in ['.txt', '_nm.txt']:
             pfilename = config['predictions_dir']+dataset+'_'+ruleset+extension
+            #pfilename = '/Users/thezamp/Desktop/VU/codeProjects/NMRextension/datasets/hetionet/predictions/hetionet_original_anyburl_predictions'
             print(pfilename)
-            ks = [1,3,10]
+            ks = [1,3,10, 100]
 
             hits= defaultdict(lambda:0)
             hits_s= defaultdict(lambda:0)
@@ -50,46 +82,47 @@ for dataset in ['NELL995','hetionet']:
             mrr = 0.0
             sem10s =0.0
             sem10o = 0.0
+            sem100s = 0.0
+            sem100o = 0.0
             i= 0
 
             with open(pfilename, 'r') as predictions_file:
 
                 triples_with_pred_s = 0
                 triples_with_pred_o = 0
-                cnt=0 #counting how many are filtered
+                ocnt=0
+                scnt=0
                 for tripleLine, subjectsLine, objectsLine in itertools.zip_longest(*[predictions_file] * 3, fillvalue=''):
                     i = i + 1
                     s,p,o = tripleLine.strip('\n').split()
 
-                    predictions_subjects = list(dict.fromkeys(subjectsLine.strip().split()[1::2]))[:100]
-                    predictions_objects = list(dict.fromkeys(objectsLine.strip().split()[1::2]))[:100]
-
+                    # predictions_subjects = list(dict.fromkeys(subjectsLine.strip().split()[1::2]))[:101]
+                    # predictions_objects = list(dict.fromkeys(objectsLine.strip().split()[1::2]))[:101]
+                    predictions_subjects = max_inclusive_sort(subjectsLine.strip().split()[1:])
+                    predictions_objects = max_inclusive_sort(objectsLine.strip().split()[1:])
 
                     #compute filtered ranks
                     rank_s = 1
+                    s_found = False
                     for ps in predictions_subjects:
-                        if ps == s:
+                        if s == ps:
+                            s_found = True
                             break
-
-                        if (ps, p, o) in known_triples:
-                            cnt = cnt + 1
-                            continue
-
                         rank_s += 1
-                    if rank_s == len(predictions_subjects)+1:
+                    if not s_found:
                         rank_s = 1e6
+                        scnt += 1
 
                     rank_o = 1
+                    o_found = False
                     for po in predictions_objects:
-                        if po == o:
+                        if o ==po:
+                            o_found = True
                             break
-                        if (s, p,po) in known_triples:
-                            cnt = cnt + 1
-                            continue
                         rank_o += 1
-
-                    if rank_o == len(predictions_objects)+1:
+                    if not o_found:
                         rank_o = 1e6
+                        ocnt+=1
 
 
                     #hits and mrr
@@ -106,19 +139,43 @@ for dataset in ['NELL995','hetionet']:
                     # kept it simple at sem@10
                     if len(predictions_subjects) > 0:
                         triples_with_pred_s += 1
-                        sem_s = onto_p.sem_at_k(kg, (s, p, o), predictions_subjects[:10], False) / min(
-                            len(predictions_subjects), 10)
+                        sem_s = onto_p.sem_at_k(kg, (s, p, o), predictions_subjects[:10], False)
                         sem10s += sem_s
+
+                        sem_s100 = onto_p.sem_at_k(kg, (s, p, o), predictions_subjects[:100], False)
+                        sem100s +=sem_s100
+
                     if len(predictions_objects) > 0:
                         triples_with_pred_o += 1
-                        sem_o = onto_p.sem_at_k(kg, (s, p, o), predictions_objects[:10], True) / min(
-                            len(predictions_objects), 10)
+                        sem_o = onto_p.sem_at_k(kg, (s, p, o), predictions_objects[:10], True)
                         sem10o += sem_o
 
+                        sem_o100 = onto_p.sem_at_k(kg, (s, p, o), predictions_objects[:100], True)
+                        sem100o += sem_o100
 
-                for idx in [0,2,9]:
+
+                for idx in [0,9]:
                     print(f'{hits[idx]/(2*i)}')
                 print(f'mrr: {mrr/(2*i)}')
                 print(f'sem10: {((sem10s/triples_with_pred_s) + (sem10o/triples_with_pred_o))/2}\n')
+                print(f'sem100: {((sem100s / triples_with_pred_s) + (sem100o / triples_with_pred_o)) / 2}\n')
+
+                print(f'{scnt}\t{ocnt}\t{i}')
 
 
+
+def max_sort(line):
+    scores_map = defaultdict(list)
+    for i in range(0, len(line), 2):
+        name = line[i]
+
+        value = float(line[i + 1])
+        scores_map[name].append(value)
+    for name in scores_map:
+        scores_map[name].sort(reverse=True)
+    sorted_predictions = sorted(
+        scores_map.keys(),
+        key=lambda k: scores_map[k],
+        reverse=True
+    )
+    return sorted_predictions

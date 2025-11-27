@@ -4,23 +4,30 @@ from collections import defaultdict
 import re
 
 def parse_rule(line:str):
-    conf, rule = line.replace('<=', '').split('\t')[-2:]
+    groundings, correct, conf, rule = line.replace('<=', '').split('\t')[:]
     # pattern = re.compile(r'(<\w+>)\((\w+),(\w+)\)')
     # pattern = re.compile(r'(<[^>]+>)\s*\(([^,]+),([^)]+)\)')
     # pattern = re.compile(r'(\w+)\((\w+),(\w+)\)') #this was for NELL
     pattern = re.compile(r'(\S+?)\((\w+),(\w+)\)')
 
-    conf = float(conf)
+    #conf = float(conf)
+    applied_conf = float(correct)/(float(groundings)+5)
     matches = pattern.findall(rule)
-    return conf, matches
+    return float(conf), float(applied_conf), matches
 
 def parse_rules_file(rules_file : str):
     rules = []
     pred_rules_index = dict()
+    debug_tot = 0
+    debug_cnt = 0
     with open(rules_file) as rf:
         for line in rf.readlines():
-            rules.append(parse_rule(line))
-    rules = [r for r in rules if r[0]<0.9]
+            debug_tot += 1
+            c, ac, matches = parse_rule(line)
+            if c < 0.999:
+                debug_cnt += 1
+                rules.append((ac, matches))
+
     rules = sorted(rules, key=lambda x: x[0], reverse=True)
 
     for rule in rules: #todo: this can be optimized with the above line

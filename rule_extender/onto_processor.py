@@ -8,7 +8,7 @@ from rule_extender.utils import load_ontology, find_functional_prop, find_invers
 
 
 class onto_processor:
-    def __init__(self,ontology_file:str, def_uri:str, checkSem:bool):
+    def __init__(self,ontology_file:str, def_uri:str, checkSem:bool, ruleset:str):
         self.def_uri = def_uri #for future proofing
         self.onto = load_ontology(ontology_file)
         self.functional_properties = find_functional_prop(self.onto)
@@ -23,7 +23,10 @@ class onto_processor:
         self.funcStats = 0
         self.ifuncStats = 0
         self.drStats = 0
+        self.branchingStats = 0
         self.checkSem = checkSem
+        self.ruleset= ruleset
+
 
     def is_functional(self, prop:str):
         return prop in self.functional_properties
@@ -63,11 +66,14 @@ class onto_processor:
         disjoin_req = { disjClass for c in super_classes for disjClass in self.disjoint_classes.get(c, [])}
 
         if checkRange:
-            restrictions = self.get_ranges(pName)
+            # restrictions = self.get_ranges(pName)
+            restrictions = [self.super_classes.get(r, []) for r in self.get_ranges(pName)]
         else:
-            restrictions = self.get_domains(pName)
+            # restrictions = self.get_domains(pName)
+            restrictions = [self.super_classes.get(d, []) for d in self.get_domains(pName)]
 
-        if len(restrictions)>0 and all(restriction in disjoin_req for restriction in restrictions):
+        # if len(restrictions)>0 and all(restriction in disjoin_req for restriction in restrictions):
+        if len(restrictions) > 0 and all(any(restrictionSC in disjoin_req for restrictionSC in restriction)for restriction in restrictions):
             self.drStats +=1
             return True
         return False
@@ -90,8 +96,8 @@ class onto_processor:
             if triple[1] in self.functional_properties and self.violate_functionality(kg, triple):
                 continue
             valid+=1
-        #check d/r
-        return valid
+
+        return valid/len(predictions)
 
     def func_trigger(self):
         self.funcStats += 1
@@ -99,7 +105,13 @@ class onto_processor:
     def ifunc_trigger(self):
         self.ifuncStats += 1
 
+    def branching_trigger(self):
+        self.branchingStats += 1
+
     def print_stats(self):
         print(
             f'found: {self.funcStats} functional exceptions; {self.ifuncStats} inv functional exceptions; {self.drStats} dr exceptions')
 
+    def report_branching(self):
+        print(self.branchingStats)
+        self.branchingStats = 0
