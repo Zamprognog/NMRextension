@@ -34,7 +34,7 @@ if __name__ == '__main__':
             for line in rf.readlines():
                 s, p, o = line.strip('\n').split('\t')
                 graph_train.add_edge(s, o, key=p)
-                known_triples.add_edge(s, o, key=p)
+                # known_triples.add_edge(s, o, key=p)
         for ds in [config['valid'], config['test']]:
             with open(ds, 'r') as rf:
                 for line in rf.readlines():
@@ -62,7 +62,7 @@ if __name__ == '__main__':
                 # generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file,
                 #                      onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
                 new_generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file+'multicore',
-                                      onto_p=onto_p, config = config, pred_rules_index=pred_rules_index, limit=100, debug=False, check_sem = check_sem, ruleset=ruleset)
+                                      onto_p=onto_p, config = config, pred_rules_index=pred_rules_index, limit=100, debug=True, check_sem = check_sem, ruleset=ruleset)
 
                 print(f'predictions computed in {time.time() - start} seconds')
             #onto_p.print_stats()

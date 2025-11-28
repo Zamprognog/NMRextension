@@ -103,8 +103,10 @@ def process_single_triple(trip):
     candidate_rules = global_pred_rules_index[p] if p in global_pred_rules_index.keys() else []
 
     known_objects = []
+    if s in global_train_kg:
+        known_objects.extend([ent for ent, key_dict in global_train_kg[s].items() if p in key_dict and ent != o])
     if s in global_known_triples:
-        known_objects = [ent for ent, key_dict in global_known_triples[s].items() if p in key_dict and ent != o]
+        known_objects.extend([ent for ent, key_dict in global_known_triples[s].items() if p in key_dict and ent != o])
 
     sorted_o_predictions = generate_triple_predictions(
         kg=global_train_kg,
@@ -117,10 +119,13 @@ def process_single_triple(trip):
         onto_p=global_onto_processor
     )
 
-    # 2. Prediction for Subject
+
     known_subjects = []
+    if hasattr(global_train_kg, 'pred') and o in global_train_kg.pred:
+        known_subjects.extend([ent for ent, key_dict in global_train_kg.pred[o].items() if p in key_dict and ent != s])
+
     if hasattr(global_known_triples, 'pred') and o in global_known_triples.pred:
-        known_subjects = [ent for ent, key_dict in global_known_triples.pred[o].items() if p in key_dict and ent != s]
+        known_subjects.extend([ent for ent, key_dict in global_known_triples.pred[o].items() if p in key_dict and ent != s])
 
     sorted_s_predictions = generate_triple_predictions(
         kg=global_train_kg,
@@ -132,7 +137,7 @@ def process_single_triple(trip):
         mask_object=False,
         onto_p=global_onto_processor
     )
-
+    print('triple done')
     # Format Output String immediately in worker to save main process work
     header = f'{s}\t{p}\t{o}\n'
     subj_str = 'subjects:\t' + "".join(
@@ -147,10 +152,10 @@ def new_generate_predictions(train_kg, known_triples, test_file, out_file,
                              onto_p, config, check_sem, ruleset, pred_rules_index: dict, limit: int = 100, debug=False):
     test_triples = pd.read_csv(test_file, sep='\t', header=None, names=['s', 'p', 'o'])
     if debug:
-        test_triples = test_triples[:100]
+        test_triples = test_triples[:1000]
 
     # num_workers = os.cpu_count()
-    num_workers= 1
+    num_workers= 3
     print(f"Starting parallel prediction with {num_workers} cores...")
 
 
