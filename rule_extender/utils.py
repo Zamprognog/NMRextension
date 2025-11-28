@@ -71,6 +71,9 @@ def find_inverse_functional_prop(ontology:Graph):
     # return [str(row.prop).split('/')[-1] for row in res4functional]
 
 
+def dom_range_init():
+    return ([], [])
+
 def find_dom_range(ontology: Graph):
     query4dom= '''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -107,7 +110,8 @@ def find_dom_range(ontology: Graph):
     res4dom = ontology.query(query4dom)
     res4range = ontology.query(query4range)
 
-    domain_range_dict = defaultdict(lambda: ([], []))
+    # domain_range_dict = defaultdict(lambda: ([], []))
+    domain_range_dict = defaultdict(dom_range_init)
     for res in res4dom:
 
         # prop_dict[res.property] = (URIRef(res.domains),URIRef(res.ranges))
@@ -117,6 +121,7 @@ def find_dom_range(ontology: Graph):
         domain_range_dict[str(res.property)][1].append(str(res.range))
 
     return domain_range_dict
+
 
 def find_disjoint_classes(ontology: Graph):
     query_disjoint = '''
@@ -130,7 +135,8 @@ def find_disjoint_classes(ontology: Graph):
     '''
     res4disjoint = ontology.query(query_disjoint)
 
-    disjoint_dict = defaultdict(lambda: []) #some classes are not disjoint with anything
+    # disjoint_dict = defaultdict(lambda: []) #some classes are not disjoint with anything
+    disjoint_dict = defaultdict(list)
     for dw_res in res4disjoint:
         className = str(dw_res["className"])
         dw_class = str(dw_res["dw"])
@@ -154,7 +160,7 @@ def find_super_classes(ontology: Graph):
     '''
     res4super = ontology.query(query_super)
 
-    sc_dict = defaultdict(lambda: [])
+    sc_dict = defaultdict(list)
     for sup_res in res4super:
         className = str(sup_res["className"])
         super_class = str(sup_res["super"])
