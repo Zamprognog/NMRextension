@@ -20,7 +20,7 @@ def parse_rules_file(rules_file : str):
     pred_rules_index = dict()
     debug_tot = 0
     debug_cnt = 0
-    with open(rules_file) as rf:
+    with open(rules_file, encoding='utf-8') as rf:
         for line in rf.readlines():
             debug_tot += 1
             c, ac, matches = parse_rule(line)

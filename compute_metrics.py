@@ -41,19 +41,19 @@ for dataset in ['hetionet']:
 
     print(f'Computing metrics for {dataset}')
     config_file = f'datasets/{dataset}/{dataset}.json'
-    with open(config_file, 'r') as f:
+    with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
 
     kg = nx.MultiDiGraph()
     known_triples = set()
-    with open(config['train'], 'r') as rf:
+    with open(config['train'], 'r', encoding='utf-8') as rf:
         for line in rf.readlines():
             s, p, o = line.strip('\n').split('\t')
             kg.add_edge(s, o, key=p)
             known_triples.add((s, p, o))
 
     for ds in [config['valid'], config['test']]:
-        with open(ds, 'r') as rf:
+        with open(ds, 'r', encoding='utf-8') as rf:
             for line in rf.readlines():
                 s, p, o = line.strip('\n').split('\t')
                 known_triples.add((s, p, o))
@@ -86,7 +86,7 @@ for dataset in ['hetionet']:
             sem100o = 0.0
             i= 0
 
-            with open(pfilename, 'r') as predictions_file:
+            with open(pfilename, 'r', encoding='utf-8') as predictions_file:
 
                 triples_with_pred_s = 0
                 triples_with_pred_o = 0

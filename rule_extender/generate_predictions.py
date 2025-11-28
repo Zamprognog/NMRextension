@@ -60,7 +60,7 @@ def generate_predictions(train_kg, known_triples: nx.MultiDiGraph, test_file, ou
 
     test_triples = pd.read_csv(test_file, sep= '\t', header = None, names = ['s','p','o'])
     if debug: test_triples = test_triples[:100]
-    with open(out_file, 'w') as of: #following the approach from anyburl
+    with open(out_file, 'w', encoding='utf-8') as of: #following the approach from anyburl
         for i, trip in test_triples.iterrows():
             p = trip.iloc[1]
             s = trip.iloc[0]

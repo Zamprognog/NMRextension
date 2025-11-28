@@ -43,7 +43,7 @@ def materialize(config, output_triples_path, new_triples_path, checkSem,ruleset,
     base_graph = nx.MultiDiGraph()
 
     for fName in [train_path, valid_path, test_path]:
-        with open(fName, 'r') as rf:
+        with open(fName, 'r', encoding='utf-8') as rf:
             for line in rf.readlines():
                 s, p, o = line.strip('\n').split('\t')
                 base_graph.add_edge(s, o, key=p)
@@ -93,7 +93,7 @@ def materialize(config, output_triples_path, new_triples_path, checkSem,ruleset,
     # with open(output_triples_path, 'w') as wf:
     #     for out_node, in_node, key in mat_graph.edges(keys=True):
     #         wf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
-    with open(new_triples_path, 'w') as ntf:
+    with open(new_triples_path, 'w', encoding='utf-8') as ntf:
         for out_node, in_node, key in new_triples.edges(keys=True):
             ntf.write(f"<{out_node}> <{key}> <{in_node}> .\n")
 
@@ -116,7 +116,7 @@ N=0.3
 for dataset in datasets:
     print(f'###\tdataset: {dataset}\t###\n')
     config_file = f'datasets/{dataset}/{dataset}.json'
-    with open(config_file, 'r') as f:
+    with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     for ruleset in rulesets:
         for check_sem in checkSems:

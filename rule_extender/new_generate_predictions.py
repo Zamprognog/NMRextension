@@ -2,6 +2,7 @@ import pandas as pd
 import networkx as nx
 from concurrent.futures import ProcessPoolExecutor
 from rule_extender.onto_processor import onto_processor
+from tqdm import tqdm
 import multiprocessing
 import os
 
@@ -137,7 +138,7 @@ def process_single_triple(trip):
         mask_object=False,
         onto_p=global_onto_processor
     )
-    print('triple done')
+    #print('triple done')
     # Format Output String immediately in worker to save main process work
     header = f'{s}\t{p}\t{o}\n'
     subj_str = 'subjects:\t' + "".join(
@@ -163,7 +164,7 @@ def new_generate_predictions(train_kg, known_triples, test_file, out_file,
 
     # chunk_size = max(1, len(triples_data) // ((os.cpu_count()) * 4))
     # Open file once
-    with open(out_file, 'w') as of:
+    with open(out_file, 'w', encoding='utf-8') as of:
 
         # Initialize Pool
         with ProcessPoolExecutor(max_workers=num_workers,
@@ -174,11 +175,9 @@ def new_generate_predictions(train_kg, known_triples, test_file, out_file,
             chunk_size = max(1, len(triples_data) // ((num_workers) * 4))
             print('chunk_size:', chunk_size)
 
-            for i, result_string in enumerate(executor.map(process_single_triple, triples_data, chunksize=chunk_size)):
+            for i, result_string in tqdm(enumerate(executor.map(process_single_triple, triples_data, chunksize=chunk_size))):
                 of.write(result_string)
 
-                if i % 1000 == 0:
-                    print(f"Processed {i} triples...")
 
 
     print("Prediction Complete.")

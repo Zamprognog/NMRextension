@@ -45,7 +45,7 @@ class onto_processor:
 
     def find_direct_types(self, types_file):
 
-        with open(types_file, 'r') as f:
+        with open(types_file, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 if 'syntax-ns#type' in line:
                     tokens = line.replace('<','').replace('>','').split()
