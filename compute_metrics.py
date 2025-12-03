@@ -37,32 +37,32 @@ def max_inclusive_sort(line):
     return final_result
 
 #for dataset in ['NELL995','hetionet']:
-for dataset in ['hetionet']:
+for dataset in ['CSKG2']:
 
     print(f'Computing metrics for {dataset}')
     config_file = f'datasets/{dataset}/{dataset}.json'
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
-
+    #bot needed because they are pre-filtered
     kg = nx.MultiDiGraph()
-    known_triples = set()
-    with open(config['train'], 'r', encoding='utf-8') as rf:
-        for line in rf.readlines():
-            s, p, o = line.strip('\n').split('\t')
-            kg.add_edge(s, o, key=p)
-            known_triples.add((s, p, o))
+    # known_triples = set()
+    # with open(config['train'], 'r', encoding='utf-8') as rf:
+    #     for line in rf.readlines():
+    #         s, p, o = line.strip('\n').split('\t')
+    #         kg.add_edge(s, o, key=p)
+    #         known_triples.add((s, p, o))
+    #
+    # for ds in [config['valid'], config['test']]:
+    #     with open(ds, 'r', encoding='utf-8') as rf:
+    #         for line in rf.readlines():
+    #             s, p, o = line.strip('\n').split('\t')
+    #             known_triples.add((s, p, o))
 
-    for ds in [config['valid'], config['test']]:
-        with open(ds, 'r', encoding='utf-8') as rf:
-            for line in rf.readlines():
-                s, p, o = line.strip('\n').split('\t')
-                known_triples.add((s, p, o))
-
-    for ruleset in ['anyburl', 'amie']:
+    for ruleset in ['amie','anyburl']:
     # for ruleset in ['amie']:
         print(f'ruleset: {ruleset}')
         rules_file = config[f'{ruleset}_rules']
-        for check_sem, extension in [(False,'.txt'), (True, '_nm.txt')]:
+        for check_sem, extension in [(False,'.txtmulticore'), (True, '_nm.txtmulticore')]:
         #for check_sem, extension in [(True, '_nm.txt')]:
             print(f'with exceptions: {check_sem}')
 

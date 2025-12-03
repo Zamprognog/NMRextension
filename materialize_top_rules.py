@@ -109,20 +109,20 @@ print(today.strftime("%A, %B %d, %Y"))
 # rulesets = ['amie']
 # checkSems = [False, True]
 datasets =['CSKG2']
-rulesets = ['anyburl']
-checkSems = [True]
+rulesets = ['amie', 'anyburl']
+checkSems = [False,True]
 checkSems = [False, True]
-N=0.3
+Ns = [0.1,0.3]
 for dataset in datasets:
     print(f'###\tdataset: {dataset}\t###\n')
     config_file = f'datasets/{dataset}/{dataset}.json'
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
-    for ruleset in rulesets:
-        for check_sem in checkSems:
+    for N in Ns:
+        for ruleset in rulesets:
+            for check_sem in checkSems:
+                print(f'materializing {dataset} with {ruleset} rules, check sem {check_sem}')
 
-            print(f'materializing {dataset} with {ruleset} rules, check sem {check_sem}')
 
-
-            materialize(config, output_triples_path=config['predictions_dir'] + f'{dataset}_{N}_materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
-            new_triples_path=config['predictions_dir'] +f'{dataset}_{N}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem,ruleset=ruleset, N=N)
+                materialize(config, output_triples_path=config['predictions_dir'] + f'{dataset}_{N}_materialized_graph_{ruleset}_checkSem_' + str(check_sem) + '.nt',
+                new_triples_path=config['predictions_dir'] +f'{dataset}_{N}_new_triples_{ruleset}_checkSem_' + str(check_sem) + '.nt',checkSem=check_sem,ruleset=ruleset, N=N)
