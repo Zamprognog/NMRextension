@@ -42,7 +42,7 @@ This project utilizes both Python scripts and Java executables (`.jar`). Ensure 
    Currently supporting AnyBURL and AMIE3
 
 4. **Download the datasets**
-    You can download the dataset folder, as-is, at the following [address]().
+    You can download the dataset folder, as-is, at the following [address](https://doi.org/10.5281/zenodo.17854519).
 
 If you are re-creating the datesets from datasets/<...>/data/
 5. **Execute datasets/create_datasets.ipynb**
