@@ -81,3 +81,15 @@ Run the script to compute rank-based metrics over the test set
 ```bash
 python compute_metrics.py
 ```
+
+## Further details
+### Nell995
+ - schema and ontology reachable [here](https://github.com/bagindokemas/SAIKGC?tab=readme-ov-file)
+
+### CSKG2.0
+ - dataset and benchmark reachable [here](https://doi.org/10.5281/zenodo.14167682)
+ - schema reachable [here](https://scholkg.kmi.open.ac.uk/cskg/ontology)
+
+### Hetionet
+ - Splits are generated from the pykeen.datasets.hetionet dataset
+ - Metaedges from hetionet [release](https://github.com/hetio/hetionet/blob/main/describe/edges/metaedges.tsv)
