@@ -21,6 +21,7 @@ This project utilizes both Python scripts and Java executables (`.jar`). Ensure 
   * Pandas
   * rdflib
   * networkx
+  * pykeen (for dataset splitting)
 * **Java Runtime Environment (JRE)** (Required to run AMIE and AnyBURL)
 * Any triple store (**GraphDB** has been used in the paper)
 
@@ -28,7 +29,7 @@ This project utilizes both Python scripts and Java executables (`.jar`). Ensure 
 
 1.  **Clone the repository:**
     ```bash
-    git clone [this repository]
+    git clone [this repository]()
     cd NMRextension
     ```
 
@@ -41,7 +42,9 @@ This project utilizes both Python scripts and Java executables (`.jar`). Ensure 
    Currently supporting AnyBURL and AMIE3
 
 4. **Download the datasets**
+    You can download the dataset folder, as-is, at the following [address](https://drive.google.com/file/d/18LkwUIq5eaHDUmOk8uFZkoPKGvRgKvDJ/view?usp=sharing).
 
+If you are re-creating the datesets from datasets/<...>/data/
 5. **Execute datasets/create_datasets.ipynb**
 
 ## Project Structure
