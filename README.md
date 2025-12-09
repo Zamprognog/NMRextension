@@ -61,6 +61,14 @@ If you are re-creating the datesets from datasets/<...>/data/
 ## Usage
 
 Warning: currently the files do not take command line input, the code needs to be modified accordingly in order to change the datasets/settings/rule sets
+
+For mining AnyBURL rules, refer to the config-files in each dataset/rules folder
+For mining AMIE rules run:
+```console
+java -jar amie3.5.1.jar -maxad 3 -mins -10 -minpca 0.1 -minc 0.1 -oute <train triples path> | tail -n +16 > datasets/<dataset>/rules/<dataset  name>_rules_amie.tsv
+```
+Then align them running align_rules.ipynb
+
 ### 1. Materialize rules
 Run the extension script to process generate N% new triples (wrt the input size).
 
@@ -93,3 +101,13 @@ python compute_metrics.py
 ### Hetionet
  - Splits are generated from the pykeen.datasets.hetionet dataset
  - Metaedges from hetionet [release](https://github.com/hetio/hetionet/blob/main/describe/edges/metaedges.tsv)
+
+### YAGO4.5-10
+- Data from the official [release](https://yago-knowledge.org/downloads/yago-4-5)
+- Preprocessing:
+  - yago-disjoints.ttl manually extracted from yago-schema.ttl
+  - properties_d_r_f.csv manually extracted from yago-schema.ttl
+  - convert yago-facts into .nt
+  - remove all literals, obtaining yago-facts-nolit.nt
+  - from yago-facts-nolit.nt remove all 'non lp' properties, obtaining yago4.5_triples.txt(or nt)
+  - run filter_ntfile.ipynb to obtain yago4.5-10
