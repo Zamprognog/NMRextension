@@ -107,7 +107,6 @@ python compute_metrics.py
 - Preprocessing:
   - yago-disjoints.ttl manually extracted from yago-schema.ttl
   - properties_d_r_f.csv manually extracted from yago-schema.ttl
-  - convert yago-facts into .nt
-  - remove all literals, obtaining yago-facts-nolit.nt
-  - from yago-facts-nolit.nt remove all 'non lp' properties, obtaining yago4.5_triples.txt(or nt)
+  - convert yago-facts.hdt into .nt (rdf2hdt library)
+  - remove all literals and triples not relevant for LP via preprocessing_scripts/filterOut_literals, obtaining yago4.5_triples.txt(or nt)
   - run filter_ntfile.ipynb to obtain yago4.5-10
