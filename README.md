@@ -89,6 +89,125 @@ Run the script to compute rank-based metrics over the test set
 ```bash
 python compute_metrics.py
 ```
+## Inconsistent triples count
+In the reported results have been obtained in GraphDB, with rdfs-plus profile.
+
+- Load the full graph + schema into the default graph
+- Load the new triples in a named graph called 'newtriples'
+
+### Queries
+Functional count
+```sparql
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+SELECT (COUNT(*) as ?total)
+WHERE {
+    select distinct ?s ?p ?o where {
+      # Select the final triples ONLY from the <http://newtriples/> named graph.
+      GRAPH <http://newtriples/> {
+        ?s ?p ?o .
+      }
+      {
+        SELECT ?s ?p
+        WHERE {
+          ?p rdf:type owl:FunctionalProperty .
+          ?s ?p ?o_inner .
+        }
+        GROUP BY ?s ?p
+        HAVING (COUNT(DISTINCT ?o_inner) > 1)
+      }
+	}
+}
+```
+Domain/range count
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+SELECT ?domainCheckCount ?rangeCheckCount
+WHERE {
+    {
+        SELECT (COUNT(*) AS ?domainCheckCount)
+        WHERE {
+            SELECT DISTINCT ?s ?p ?o 
+            WHERE {
+                GRAPH <http://newtriples/> {
+                    ?s ?p ?o .
+                }
+                {
+                    ?s a ?type1 .
+                    ?p rdfs:domain ?dom .
+                    ?type1 owl:disjointWith ?dom .
+                }
+            }
+        }
+    }
+    {
+        SELECT (COUNT(*) AS ?rangeCheckCount)
+        WHERE {
+            SELECT DISTINCT ?s ?p ?o 
+            WHERE {
+                GRAPH <http://newtriples/> {
+                    ?s ?p ?o .
+                }
+                {
+                    ?o a ?type2 .
+                    ?p rdfs:range ?ran .
+                    ?type2 owl:disjointWith ?ran .
+                }
+            }
+        }
+    }
+}
+```
+Distinct inconsistent triples count
+```sparlq 
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT (COUNT(*) AS ?totalDistinctTriples)
+WHERE {
+  {
+    # --- INNER QUERY: FIND THE TRIPLES ---
+    SELECT DISTINCT ?s ?p ?o
+    WHERE {
+      {
+        # 1. Functional Property
+        GRAPH <http://newtriples/> { ?s ?p ?o . }
+        {
+           SELECT ?s ?p WHERE {
+             ?p a owl:FunctionalProperty .
+             ?s ?p ?val .
+           }
+           GROUP BY ?s ?p
+           HAVING (COUNT(DISTINCT ?val) > 1)
+        }
+      }
+      UNION
+      {
+        # 2. Domain Violation
+        GRAPH <http://newtriples/> { ?s ?p ?o . }
+        ?s a ?type1 .
+        ?p rdfs:domain ?dom .
+        ?type1 owl:disjointWith ?dom .
+      }
+      UNION
+      {
+        # 3. Range Violation
+        GRAPH <http://newtriples/> { ?s ?p ?o . }
+        ?o a ?type2 .
+        ?p rdfs:range ?ran .
+        ?type2 owl:disjointWith ?ran .
+      }
+    }
+  }
+}
+```
+
 
 ## Further details
 ### Nell995
