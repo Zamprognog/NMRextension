@@ -7,9 +7,10 @@
 - [Installation](#installation)
 - [Project Structure](#project-structure)
 - [Usage](#usage)
-  - [1. Rule Extension](#1-rule-extension)
-  - [2. Materialization](#2-materialization)
-  - [3. Evaluation](#3-evaluation)
+  - [1. Materialize rules](#1-materialize-rules)
+  - [2. Apply rules](#2-apply-rule)
+  - [3. Metrics](#3-metrics)
+- [Inconsistent triples count](#inconsistent-triples-count)
 - [Datasets](#datasets)
 - [Acknowledgments](#acknowledgments)
 
@@ -76,7 +77,7 @@ Run the extension script to process generate N% new triples (wrt the input size)
 python materialize_top_rules.py
 ```
 
-### 2. Apply rule
+### 2. Apply rules
 Run the script to generate top-100 predictions over the test set
 
 ```bash
@@ -209,7 +210,7 @@ WHERE {
 ```
 
 
-## Further details
+## Datasets
 ### Nell995
  - schema and ontology reachable [here](https://github.com/bagindokemas/SAIKGC?tab=readme-ov-file)
 
