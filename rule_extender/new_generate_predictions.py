@@ -34,10 +34,7 @@ def worker_init(train_kg, known_triples, pred_rules_index, onto_p, limit,config,
 
 def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: list, target_loc: int,
                                 candidate_rules: list, limit: int, onto_p:onto_processor, mask_object: bool = True):
-    """
-    Your original function, slightly cleaned up.
-    (Note: filter is a reserved keyword in Python, renamed to filter_list)
-    """
+
     known_entity = triple[2 - target_loc]
     predictions = dict()
     unique_predictions = set()
