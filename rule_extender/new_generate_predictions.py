@@ -34,10 +34,7 @@ def worker_init(train_kg, known_triples, pred_rules_index, onto_p, limit,config,
 
 def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: list, target_loc: int,
                                 candidate_rules: list, limit: int, onto_p:onto_processor, mask_object: bool = True):
-    """
-    Your original function, slightly cleaned up.
-    (Note: filter is a reserved keyword in Python, renamed to filter_list)
-    """
+
     known_entity = triple[2 - target_loc]
     predictions = dict()
     unique_predictions = set()
@@ -45,10 +42,6 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: 
     for conf, cand in candidate_rules:
         if len(unique_predictions) >= limit:
             break
-
-        all_valid_groundings = set()
-        # Fix: Ensure tuples are accessed correctly for open variables
-        open_variables = list(set([t[1] for t in cand] + [t[2] for t in cand]))
 
         rule_body = cand[1:]
         if mask_object:
@@ -59,6 +52,11 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: 
             target_var = cand[0][1]
             if onto_p.ruleset == 'anyburl':
                 rule_body = rule_body[::-1]
+
+        all_valid_groundings = set()
+        # Fix: Ensure tuples are accessed correctly for open variables
+        open_variables = list(set([t[1] for t in cand if len(t[1]) == 1] + [t[2] for t in cand if len(
+            t[1]) == 1]))  # added if len(t[1]) == 1 to exclude iris
 
         if onto_p.checkSem:
             if onto_p.violates_dr_constraint(currentName=known_entity, pName=triple[1],
