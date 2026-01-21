@@ -15,8 +15,8 @@ if __name__ == '__main__':
     #     pass
     multiprocessing.freeze_support()
 
-    datasets = ['NELL995']
-    rulesets = ['anyburl']
+    datasets = ['CSKG2']
+    rulesets = ['amie','anyburl']
     semantics = [True,False]
 
     for dataset in datasets:
