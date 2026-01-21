@@ -47,16 +47,26 @@ def lookforgrounding(kg:nx.MultiDiGraph,filter:list,target_pattern:dict,remainin
                     onto_processor.func_trigger()
                     return False
 
-            # if onto_processor.is_inverse_functional(target_pattern['property']):
-            #
-            #     if target_pattern['isObject'] and any(edge[2] == target_pattern['property'] for edge in kg.in_edges(to_add, keys=True)):
-            #         # inverse functional exception condition: prop is invfunct, we are predicting objects, the objects is already involved in p edges
-            #         onto_processor.ifunct_trigger()
-            #         return False
-            #     if not target_pattern['isObject'] and len(results_list)>2:
-            #         # inverse functional exception condition: prop is invfunct, we are predicting subject, and more than one matches
-            #         onto_processor.ifunct_trigger()
-            #         return False
+            if onto_processor.is_inverse_functional(target_pattern['property']):
+
+                if target_pattern['isObject'] and any(edge[2] == target_pattern['property'] for edge in kg.in_edges(to_add, keys=True)):
+                    # inverse functional exception condition: prop is invfunct, we are predicting objects, the objects is already involved in p edges
+                    onto_processor.ifunct_trigger()
+                    return False
+                if not target_pattern['isObject'] and len(results_list)>2:
+                    # inverse functional exception condition: prop is invfunct, we are predicting subject, and more than one matches
+                    onto_processor.ifunct_trigger()
+                    return False
+
+            if onto_processor.is_anti_symmetric(target_pattern['property']):
+
+                if target_pattern['isObject'] and kg.has_edge(to_add, grounded_vars[target_pattern['base_var']], target_pattern['property']):
+                        onto_processor.asymm_trigger()
+                        return False
+
+                if not target_pattern['isObject'] and kg.has_edge(grounded_vars[target_pattern['base_var']], to_add, target_pattern['property']):
+                    onto_processor.asymm_trigger()
+                    return False
 
             if onto_processor.violates_dr_constraint(currentName=to_add, pName=target_pattern['property'], checkRange=target_pattern['isObject']):
                 return False

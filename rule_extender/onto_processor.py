@@ -12,16 +12,16 @@ class onto_processor:
         self.def_uri = def_uri #for future proofing
         onto = load_ontology(ontology_file)
         self.functional_properties = find_functional_prop(onto)
-        # self.inverse_functional_properties = find_inverse_functional_prop(onto)
+        self.inverse_functional_properties = find_inverse_functional_prop(onto)
         self.dom_ranges = find_dom_range(onto)
         self.disjoint_classes = find_disjoint_classes(onto)
         self.super_classes = find_super_classes(onto)
         self.symmetric_properties = find_symmetric_properties(onto)
-        # self.asymmetric_properties = find_asymmetric_properties(onto)
-        # self.asym_classes= find_asymmm_classes(onto)
+        self.asymmetric_properties = find_asymmetric_properties(onto)
         self.ent2type = defaultdict(list)
         self.funcStats = 0
         self.ifuncStats = 0
+        self.asymmStats = 0
         self.drStats = 0
         self.branchingStats = 0
         self.checkSem = checkSem
@@ -30,12 +30,12 @@ class onto_processor:
 
     def is_functional(self, prop:str):
         return prop in self.functional_properties
-    # def is_inverse_functional(self, prop:str):
-    #     return prop in self.inverse_functional_properties
+    def is_inverse_functional(self, prop:str):
+        return prop in self.inverse_functional_properties
     def is_symmetric(self, prop:str):
         return prop in self.symmetric_properties
-    # def is_asymmetric(self, prop:str):
-    #     return prop in self.asymmetric_properties
+    def is_anti_symmetric(self, prop:str):
+        return prop in self.asymmetric_properties
 
     def get_domains(self, prop:str):
         return self.dom_ranges[prop][0]
@@ -104,6 +104,9 @@ class onto_processor:
 
     def ifunc_trigger(self):
         self.ifuncStats += 1
+
+    def asymm_trigger(self):
+        self.asymmStats += 1
 
     def branching_trigger(self):
         self.branchingStats += 1

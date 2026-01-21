@@ -65,7 +65,12 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: 
             if mask_object and onto_p.is_functional(prop=triple[1]):
                 if any(edge[2] == triple[1] for edge in kg.out_edges(base_var, keys=True)):
                     # Note: counters in workers won't sync back to main process automatically
-                    onto_p.func_trigger()
+                    #onto_p.func_trigger()
+                    return predictions
+
+            if not mask_object and onto_p.is_inverse_functional(prop=triple[1]):
+                if any(edge[2] == triple[1] for edge in kg.in_edges(base_var, keys=True)): #already an incoming p edge
+                    #onto_p.ifunc_trigger()
                     return predictions
 
         rule_groundings_are_valid = lookforgrounding(
