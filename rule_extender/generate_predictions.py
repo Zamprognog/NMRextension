@@ -14,18 +14,24 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter: list, triple:pd.tse
         if len(unique_predictions) >= limit:
             # rationale is that the rankings and prediction are accurate up to N, usually 100
             break
-        all_valid_groundings = set() #this is the results of all possible groundings of the target variable
-        open_variables = list(set([t[1] for t in cand] + [t[2] for t in cand])) #variables to be assigned
 
         rule_body = cand[1:]
         if mask_object:
             base_var = cand[0][1]
+            if len(base_var) > 1: #cannot predict starting froum the grounded part of the atom
+                continue
             target_var = cand[0][2]
         else:
             base_var = cand[0][2]
+            if len(base_var) > 1:
+                continue
             target_var = cand[0][1]
-            if onto_processor.ruleset == 'anyburl':
-                rule_body = rule_body[::-1] #anyburl has cyclic rules
+            # if onto_processor.ruleset == 'anyburl':
+            #     rule_body = rule_body[::-1] #anyburl has cyclic rules
+
+        all_valid_groundings = set()  # this is the results of all possible groundings of the target variable
+        open_variables = list(set([t[1] for t in cand if len(t[1]) == 1] + [t[2] for t in cand if len(
+            t[1]) == 1]))  # variables to be assigned
 
         if onto_processor.checkSem :
             #these are 'in graph' checks
@@ -68,6 +74,7 @@ def generate_predictions(train_kg, known_triples: nx.MultiDiGraph, test_file, ou
             if i % 1000 == 0:
                 print(i)
 
+            #candidate_rules = pred_rules_index[p] if p in pred_rules_index.keys() else []
             candidate_rules = pred_rules_index[p] if p in pred_rules_index.keys() else []
             known_objects = [ent for ent, key_dict in known_triples[s].items() if p in key_dict and ent != o]
             sorted_o_predictions = generate_triple_predictions(kg=train_kg,filter=known_objects, triple=trip, target_loc=2,

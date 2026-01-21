@@ -8,7 +8,8 @@ def parse_rule(line:str):
     # pattern = re.compile(r'(<\w+>)\((\w+),(\w+)\)')
     # pattern = re.compile(r'(<[^>]+>)\s*\(([^,]+),([^)]+)\)')
     # pattern = re.compile(r'(\w+)\((\w+),(\w+)\)') #this was for NELL
-    pattern = re.compile(r'(\S+?)\((\w+),(\w+)\)')
+    # pattern = re.compile(r'(\S+?)\((\w+),(\w+)\)')
+    pattern = re.compile(r'(\S+?)\((\S+?),(\S+?)\)')
 
     #conf = float(conf)
     applied_conf = float(correct)/(float(groundings)+5)

@@ -37,7 +37,7 @@ def max_inclusive_sort(line):
     return final_result
 
 #for dataset in ['NELL995','hetionet']:
-for dataset in ['CSKG2']:
+for dataset in ['NELL995']:
 
     print(f'Computing metrics for {dataset}')
     config_file = f'datasets/{dataset}/{dataset}.json'
@@ -58,12 +58,12 @@ for dataset in ['CSKG2']:
     #             s, p, o = line.strip('\n').split('\t')
     #             known_triples.add((s, p, o))
 
-    for ruleset in ['amie','anyburl']:
+    for ruleset in ['anyburl']:
     # for ruleset in ['amie']:
         print(f'ruleset: {ruleset}')
         rules_file = config[f'{ruleset}_rules']
-        for check_sem, extension in [(False,'.txtmulticore'), (True, '_nm.txtmulticore')]:
-        #for check_sem, extension in [(True, '_nm.txt')]:
+        #for check_sem, extension in [(False,'.txtmulticore'), (True, '_nm.txtmulticore')]:
+        for check_sem, extension in [(True, '_nm_debug.txt')]:
             print(f'with exceptions: {check_sem}')
 
             onto_p = onto_processor(config['schema'], config['def_uri'], checkSem=check_sem, ruleset = ruleset)

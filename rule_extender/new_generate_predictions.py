@@ -6,7 +6,6 @@ from tqdm import tqdm
 import multiprocessing
 import os
 
-# Import your existing modules
 from rule_extender.lookforgrounding import lookforgrounding
 from rule_extender.onto_processor import onto_processor as OntoProcessorClass
 
@@ -45,10 +44,16 @@ def generate_triple_predictions(kg: nx.MultiDiGraph, filter_list: list, triple: 
 
         rule_body = cand[1:]
         if mask_object:
+
             base_var = cand[0][1]
+            if len(base_var) >1 and base_var != known_entity:
+                continue #rule doesn't apply as triple head and base (grounded) var mismatch
             target_var = cand[0][2]
         else:
+
             base_var = cand[0][2]
+            if len(base_var) > 1 and base_var != known_entity:
+                continue  # rule doesn't apply as triple tail and base (grounded) var mismatch
             target_var = cand[0][1]
             if onto_p.ruleset == 'anyburl':
                 rule_body = rule_body[::-1]

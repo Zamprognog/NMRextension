@@ -1,7 +1,7 @@
 import json
 from rule_extender.utils import *
 from rule_extender.new_generate_predictions import *
-# from rule_extender.generate_predictions import *
+from rule_extender.generate_predictions import *
 from pathlib import Path
 from rule_extender.onto_processor import onto_processor
 import time
@@ -15,9 +15,9 @@ if __name__ == '__main__':
     #     pass
     multiprocessing.freeze_support()
 
-    datasets = ['CSKG2']
-    rulesets = ['amie','anyburl']
-    semantics = [True,False]
+    datasets = ['NELL995']
+    rulesets = ['anyburl']
+    semantics = [True]
 
     for dataset in datasets:
         print(f'Computing predictions for dataset {dataset}')
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 print(f'non monotonic extension: {check_sem}')
 
                 if check_sem:
-                    output_file = config['predictions_dir'] + dataset + '_' + ruleset + '_nm.txt'
+                    output_file = config['predictions_dir'] + dataset + '_' + ruleset + '_nm_debug.txt'
                 else:
                     output_file  = config['predictions_dir'] + dataset + '_' + ruleset + '.txt'
 
@@ -59,10 +59,10 @@ if __name__ == '__main__':
 
 
                 start = time.time()
-                # generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file,
-                #                      onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
-                new_generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file+'multicore',
-                                      onto_p=onto_p, config = config, pred_rules_index=pred_rules_index, limit=100, debug=False, check_sem = check_sem, ruleset=ruleset)
+                generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file,
+                                     onto_processor = onto_p, pred_rules_index=pred_rules_index, limit=100, debug=False)
+                # new_generate_predictions(train_kg=graph_train,known_triples=known_triples, test_file=config['test'], out_file=output_file+'multicore',
+                #                       onto_p=onto_p, config = config, pred_rules_index=pred_rules_index, limit=100, debug=False, check_sem = check_sem, ruleset=ruleset)
 
                 print(f'predictions computed in {time.time() - start} seconds')
             #onto_p.print_stats()
