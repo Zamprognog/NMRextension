@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     datasets = ['NELL995']
     rulesets = ['anyburl']
-    semantics = [True]
+    semantics = [False]
 
     for dataset in datasets:
         print(f'Computing predictions for dataset {dataset}')
